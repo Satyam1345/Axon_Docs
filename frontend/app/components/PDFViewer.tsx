@@ -33,8 +33,12 @@ const AdobePDFViewer: React.FC<PDFViewerProps> = ({ docUrl, pageNumber }) => {
   useEffect(() => {
     if (!docUrl) return;
 
-    // IMPORTANT: Replace with your actual Adobe PDF Embed API Client ID
-    const ADOBE_CLIENT_ID = "ebb174b7782440a9a445ff7c27fefbd9";
+    // Read Adobe PDF Embed API Client ID from environment
+    const ADOBE_CLIENT_ID = process.env.NEXT_PUBLIC_ADOBE_CLIENT_ID;
+    if (!ADOBE_CLIENT_ID) {
+      console.error("Missing NEXT_PUBLIC_ADOBE_CLIENT_ID. Set it in .env.local");
+      return;
+    }
 
     // Function to initialize the viewer once the SDK is ready
     const initializeViewer = () => {
