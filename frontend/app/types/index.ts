@@ -1,3 +1,4 @@
+// app/types/index.ts
 export interface KeyInsight {
   type: "fact" | "contradiction" | "risk";
   content: string;
