@@ -9,7 +9,11 @@
 
     const app = express();
 
-    app.use(cors({ origin: 'http://localhost:3000' }));
+    app.use(cors({
+      origin: [ 'http://localhost:3000', 'http://127.0.0.1:3000' ],
+      credentials: true,
+      allowedHeaders: ['Content-Type', 'x-auth-token']
+    }));
     app.use(express.json());
     app.use(passport.initialize());
 

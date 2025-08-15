@@ -30,7 +30,9 @@
         const pythonScriptDir = path.resolve(__dirname, '../../round_1b');
         const outputPath = path.join(collectionPath, 'round1b_output.json');
 
-        const pythonProcess = spawn('python', 
+  // Use system Python path from env or fallback
+  const pythonExecutable = process.env.PYTHON_EXECUTABLE || 'C:/Python312/python.exe';
+        const pythonProcess = spawn(pythonExecutable, 
           [pythonScriptPath, '--input_dir', collectionPath, '--output_path', outputPath],
           { cwd: pythonScriptDir }
         );
