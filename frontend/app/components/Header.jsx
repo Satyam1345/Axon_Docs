@@ -1,15 +1,6 @@
-// app/components/Header.tsx
-"use client";
 import { PanelLeftClose, PanelLeftOpen, LogOut } from 'lucide-react';
-import { useAuth } from '@/app/context/AuthContext';
 
-interface HeaderProps {
-  isSidebarOpen: boolean;
-  toggleSidebar: () => void;
-}
-
-const Header: React.FC<HeaderProps> = ({ isSidebarOpen, toggleSidebar }) => {
-  const { logout } = useAuth();
+function Header({ isSidebarOpen, toggleSidebar, onLogout }) {
   return (
     <header className="flex items-center justify-between h-14 px-4 border-b border-slate-700 bg-slate-800 flex-shrink-0">
       <div className="flex items-center gap-4">
@@ -18,11 +9,11 @@ const Header: React.FC<HeaderProps> = ({ isSidebarOpen, toggleSidebar }) => {
         </button>
         <h1 className="text-lg font-bold">Axon Docs</h1>
       </div>
-      <button onClick={logout} className="p-2 rounded-md hover:bg-slate-700">
+      <button onClick={onLogout} className="p-2 rounded-md hover:bg-slate-700">
         <LogOut size={20} className="text-red-400" />
       </button>
     </header>
   );
-};
+}
 
 export default Header;

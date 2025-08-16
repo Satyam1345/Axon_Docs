@@ -1,17 +1,7 @@
-// app/(dashboard)/components/Sidebar.tsx
 import { ChevronDown, FileText, Lightbulb, Link, BarChart, PlayCircle, Clock, History, PlusCircle } from 'lucide-react';
-import { AnalysisData } from '@/app/types';
 import LinkNext from 'next/link';
 
-interface SidebarProps {
-  isOpen: boolean;
-  data: AnalysisData;
-  history: any[];
-  onSectionSelect: (doc: string, page: number) => void;
-  onCollectionSelect: (collection: any) => void;
-}
-
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, data, history, onSectionSelect, onCollectionSelect }) => {
+function Sidebar({ isOpen, data, history, onSectionSelect, onCollectionSelect }) {
   if (!isOpen) return null;
 
   return (
@@ -41,6 +31,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, data, history, onSectionSelec
       </div>
     </aside>
   );
-};
+}
 
 export default Sidebar;

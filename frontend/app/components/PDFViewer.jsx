@@ -1,21 +1,12 @@
-"use client";
-
 import React, { useEffect, useRef, useState } from 'react';
 import WebViewer from '@pdftron/webviewer';
 
-// --- Component Props ---
-interface PDFViewerProps {
-  docUrl: string;
-  pageNumber: number;
-}
-
-// No global window script needed; we import WebViewer from the npm package
-
-const PdfJsExpressViewer: React.FC<PDFViewerProps> = ({ docUrl, pageNumber }) => {
-  const viewerRef = useRef<HTMLDivElement>(null);
-  const instanceRef = useRef<any>(null);
-  const docViewerRef = useRef<any>(null);
-  const [fallback, setFallback] = useState<boolean>(false);
+function PdfJsExpressViewer(props) {
+  const { docUrl, pageNumber } = props;
+  const viewerRef = useRef(null);
+  const instanceRef = useRef(null);
+  const docViewerRef = useRef(null);
+  const [fallback, setFallback] = useState(false);
 
   useEffect(() => {
     if (!docUrl || !viewerRef.current) return;
@@ -28,7 +19,6 @@ const PdfJsExpressViewer: React.FC<PDFViewerProps> = ({ docUrl, pageNumber }) =>
       try {
         const instance = await WebViewer(
           {
-            // Serve assets locally from public/webviewer/lib
             path: '/webviewer/lib',
             licenseKey: LICENSE_KEY,
             initialDoc: encodedUrl,
@@ -37,17 +27,12 @@ const PdfJsExpressViewer: React.FC<PDFViewerProps> = ({ docUrl, pageNumber }) =>
           viewerRef.current
         );
         instanceRef.current = instance;
-        // Prefer new API; fallback to legacy
-        const docViewer = instance?.Core?.documentViewer || instance?.docViewer;
-        const UI = instance?.UI;
+        const docViewer = instance && instance.Core && instance.Core.documentViewer ? instance.Core.documentViewer : instance.docViewer;
+        const UI = instance.UI;
         docViewerRef.current = docViewer;
-
-        // Hide download/print to match previous behavior
         try {
-          UI?.disableElements?.(['downloadButton', 'printButton']);
+          if (UI && UI.disableElements) UI.disableElements(['downloadButton', 'printButton']);
         } catch {}
-
-        // Navigate to page once the document is loaded
         const onDocLoaded = () => {
           if (pageNumber && pageNumber > 0) {
             try {
@@ -55,9 +40,9 @@ const PdfJsExpressViewer: React.FC<PDFViewerProps> = ({ docUrl, pageNumber }) =>
             } catch {}
           }
         };
-        if (docViewer?.addEventListener) {
+        if (docViewer && docViewer.addEventListener) {
           docViewer.addEventListener('documentLoaded', onDocLoaded);
-        } else if (docViewer?.on) {
+        } else if (docViewer && docViewer.on) {
           docViewer.on('documentLoaded', onDocLoaded);
         }
       } catch (e) {
@@ -65,27 +50,20 @@ const PdfJsExpressViewer: React.FC<PDFViewerProps> = ({ docUrl, pageNumber }) =>
         setFallback(true);
       }
     };
-
-    // Directly initialize; no external script tag needed when using the npm package
     init();
-
-    // Cleanup: dispose viewer if available
     return () => {
       try {
-        // Prefer UI.dispose when available
-        if (instanceRef.current?.UI?.dispose) {
+        if (instanceRef.current && instanceRef.current.UI && instanceRef.current.UI.dispose) {
           instanceRef.current.UI.dispose();
-        } else if (instanceRef.current?.dispose) {
+        } else if (instanceRef.current && instanceRef.current.dispose) {
           instanceRef.current.dispose();
         }
       } catch {}
       instanceRef.current = null;
       docViewerRef.current = null;
     };
-    // Re-init when docUrl changes only
   }, [docUrl]);
 
-  // Handle page updates after init
   useEffect(() => {
     if (docViewerRef.current && pageNumber && pageNumber > 0) {
       try {
@@ -107,6 +85,6 @@ const PdfJsExpressViewer: React.FC<PDFViewerProps> = ({ docUrl, pageNumber }) =>
       )}
     </div>
   );
-};
+}
 
 export default PdfJsExpressViewer;
