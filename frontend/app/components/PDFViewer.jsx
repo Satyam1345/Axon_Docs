@@ -82,7 +82,7 @@ function AdobePDFViewer({ docUrl }) {
   }, [docUrl]);
 
   return (
-    <div className="h-full w-full bg-slate-950">
+    <div className="h-full w-full bg-white text-red-700">
       <div id="adobe-dc-view" ref={viewerRef} style={{ height: "100%", width: "100%" }} />
     </div>
   );

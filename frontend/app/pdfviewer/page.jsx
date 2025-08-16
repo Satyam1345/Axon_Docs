@@ -46,7 +46,7 @@ export default function PdfViewerPage() {
 		};
 
 		return (
-			<div className="flex flex-col h-screen">
+			<div className="flex flex-col h-screen bg-white text-red-700">
 				<Header isSidebarOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
 				<main className="flex flex-grow overflow-hidden">
 					<Sidebar
@@ -58,8 +58,10 @@ export default function PdfViewerPage() {
 						onPdfSelect={handlePdfSelect}
 						selectedPdf={file}
 					/>
-					<div className="flex-grow h-full">
-						<PdfJsExpressViewer docUrl={docUrl} />
+					<div className="flex-grow h-full p-4">
+						<div className="border border-red-700 bg-white h-full">
+							<PdfJsExpressViewer docUrl={docUrl} />
+						</div>
 					</div>
 				</main>
 			</div>

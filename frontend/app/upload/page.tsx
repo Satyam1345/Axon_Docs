@@ -43,22 +43,22 @@ export default function UploadPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-900">
+    <div className="flex items-center justify-center min-h-screen bg-white">
       <div className="w-full max-w-2xl p-8 space-y-6 bg-slate-800 rounded-xl">
-        <h1 className="text-3xl font-bold text-center">Create New Analysis</h1>
+        <h1 className="text-3xl font-bold text-center text-red-700">Create New Analysis</h1>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input value={collectionName} onChange={(e) => setCollectionName(e.target.value)} placeholder="Collection Name" required className="w-full bg-slate-900 p-2 rounded-md"/>
-          <input value={persona} onChange={(e) => setPersona(e.target.value)} placeholder="Persona" required className="w-full bg-slate-900 p-2 rounded-md"/>
-          <textarea value={jobToBeDone} onChange={(e) => setJobToBeDone(e.target.value)} placeholder="Job to be Done" required className="w-full bg-slate-900 p-2 rounded-md h-20"/>
+          <input value={collectionName} onChange={(e) => setCollectionName(e.target.value)} placeholder="Collection Name" required className="w-full bg-red-100 p-2 rounded-md border border-red-700 text-red-700"/>
+          <input value={persona} onChange={(e) => setPersona(e.target.value)} placeholder="Persona" required className="w-full bg-red-100 p-2 rounded-md border border-red-700 text-red-700"/>
+          <textarea value={jobToBeDone} onChange={(e) => setJobToBeDone(e.target.value)} placeholder="Job to be Done" required className="w-full bg-red-100 p-2 rounded-md border border-red-700 text-red-700 h-20"/>
           <div className="mt-1 flex justify-center p-6 border-2 border-slate-600 border-dashed rounded-md">
               <input id="file-upload" type="file" className="sr-only" multiple accept=".pdf" onChange={handleFileChange} />
-              <label htmlFor="file-upload" className="cursor-pointer text-blue-400 hover:underline">Upload PDF files</label>
+              <label htmlFor="file-upload" className="cursor-pointer text-red-700 hover:underline">Upload PDF files</label>
           </div>
-          {files.length > 0 && <ul className="text-sm text-slate-400">{files.map((f,i) => <li key={i}>{f.name}</li>)}</ul>}
-          <button type="submit" disabled={isLoading} className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-md disabled:bg-slate-500">
+          {files.length > 0 && <ul className="text-sm text-red-700">{files.map((f,i) => <li key={i}>{f.name}</li>)}</ul>}
+          <button type="submit" disabled={isLoading} className="w-full py-2 bg-red-700 hover:bg-red-800 rounded-md disabled:bg-red-200">
             {isLoading ? <Loader2 className="mx-auto animate-spin"/> : 'Analyze Collection'}
           </button>
-          {error && <p className="text-red-400 text-center">{error}</p>}
+          {error && <p className="text-red-700 text-center">{error}</p>}
         </form>
       </div>
     </div>
