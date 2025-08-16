@@ -6,9 +6,12 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "webviewer:copy": "node scripts/copy-webviewer-assets.js",
+    "postinstall": "node scripts/copy-webviewer-assets.js || echo Skipping asset copy"
   },
   "dependencies": {
+    "@pdftron/webviewer": "^10.12.0",
     "axios": "^1.11.0",
     "lucide-react": "^0.537.0",
     "next": "15.4.6",

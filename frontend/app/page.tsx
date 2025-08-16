@@ -2,27 +2,23 @@
 "use client";
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/app/context/AuthContext';
 import { Loader2 } from 'lucide-react';
 
 export default function HomePage() {
-  const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (!loading) {
-      if (isAuthenticated) {
-        router.push('/dashboard'); // If logged in, go to the main dashboard
-      } else {
-        router.push('/login'); // If not logged in, go to the login page
-      }
-    }
-  }, [isAuthenticated, loading, router]);
+    const timer = setTimeout(() => {
+      router.push('/upload');
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [router]);
 
-  // Display a loading spinner while the authentication check is in progress
   return (
-    <div className="flex items-center justify-center h-screen bg-slate-900">
-      <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+    <div className="flex flex-col items-center justify-center h-screen bg-white text-red-700 space-y-4">
+      <h1 className="text-4xl font-bold">WELCOME TO ADOBE PDF LIFE</h1>
+      <p className="text-lg">Prepare to experience PDFs like never before.</p>
+      <Loader2 className="h-8 w-8 animate-spin text-red-700" />
     </div>
   );
 }
