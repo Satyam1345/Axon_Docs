@@ -63,13 +63,41 @@ function AdobePDFViewer({ docUrl }) {
         content: { location: { url: docUrl } },
         metaData: { fileName },
       }, {
-        embedMode: "FULL_WINDOW",
+        embedMode: "FULL_WINDOW",          // use full window to restore toolbar
+        defaultViewMode: "FIT_WIDTH",
+        showAnnotationTools: true,           // enable annotation tools
+        showLeftHandPanel: true,            // show bookmarks/thumbnails
         showDownloadPDF: true,
         showPrintPDF: true,
       });
       if (previewPromise && typeof previewPromise.then === "function") {
         previewPromise.then(
-          (res) => console.log("[Adobe PDF Embed] previewFile resolved:", res),
+          (res) => {
+            console.log("[Adobe PDF Embed] previewFile resolved:", res);
+            // Register event callbacks for user interactions
+            adobeDCView.registerCallback(
+              AdobeDC.View.Enum.CallbackType.TEXT_SELECTION,
+              function(event) {
+                console.log("[Adobe PDF Embed] Text selected:", event);
+                // TODO: Trigger your semantic search/insights flow with event.text
+              },
+              {}
+            );
+            adobeDCView.registerCallback(
+              AdobeDC.View.Enum.CallbackType.ANNOTATION_ADDED,
+              function(event) {
+                console.log("[Adobe PDF Embed] Annotation added:", event);
+              },
+              {}
+            );
+            adobeDCView.registerCallback(
+              AdobeDC.View.Enum.CallbackType.PAGE_COMPLETE,
+              function(event) {
+                console.log("[Adobe PDF Embed] Page loaded:", event);
+              },
+              {}
+            );
+          },
           (err) => console.error("[Adobe PDF Embed] previewFile error:", err)
         );
       }
