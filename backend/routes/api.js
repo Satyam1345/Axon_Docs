@@ -5,17 +5,24 @@
     const { spawn } = require('child_process');
     const fs = require('fs');
     const path = require('path');
-    const DocumentCollection = require('../models/DocumentCollection');
-    const auth = require('../middleware/authMiddleware');
+  // const DocumentCollection = require('../models/DocumentCollection');
+  // const auth = require('../middleware/authMiddleware');
 
     const upload = multer({ dest: path.join(__dirname, '../uploads/') });
 
-    router.post('/upload', auth, upload.array('pdfs'), async (req, res) => {
+  router.post('/upload', upload.array('pdfs'), async (req, res) => {
       const collectionPath = path.dirname(req.files[0].path);
       const pdfsDir = path.join(collectionPath, 'PDFs');
       fs.mkdirSync(pdfsDir, { recursive: true });
+      // Copy each uploaded PDF to frontend/public/pdfs for frontend access
+      const frontendPdfsDir = path.resolve(__dirname, '../../frontend/public/pdfs');
+      fs.mkdirSync(frontendPdfsDir, { recursive: true });
       req.files.forEach(file => {
-        fs.renameSync(file.path, path.join(pdfsDir, file.originalname));
+        const destPath = path.join(pdfsDir, file.originalname);
+        fs.renameSync(file.path, destPath);
+        // Copy to frontend/public/pdfs
+        const frontendDest = path.join(frontendPdfsDir, file.originalname);
+        fs.copyFileSync(destPath, frontendDest);
       });
 
       const collectionName = req.body.collectionName;
@@ -49,13 +56,11 @@
             return res.status(500).json({ error: 'Python script failed.', details: stderr });
           }
           const analysisResult = JSON.parse(fs.readFileSync(outputPath, 'utf-8'));
-          const newCollection = new DocumentCollection({
+          // No DB, just return analysis result
+          res.status(201).json({
             collectionName,
-            analysisData: analysisResult,
-            userId: req.user.id,
+            analysisData: analysisResult
           });
-          await newCollection.save();
-          res.status(201).json(newCollection);
           fs.rm(collectionPath, { recursive: true, force: true }, () => {});
         });
       } catch (error) {
@@ -63,9 +68,9 @@
       }
     });
 
-    router.get('/history', auth, async (req, res) => {
-        const collections = await DocumentCollection.find({ userId: req.user.id }).sort({ createdAt: -1 });
-        res.json(collections);
+    router.get('/history', async (req, res) => {
+      // No DB, no auth, return empty array or placeholder
+      res.json([]);
     });
 
     module.exports = router;
