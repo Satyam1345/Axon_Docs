@@ -1,24 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from 'react';
-
-// --- Type Definitions for Adobe's View SDK ---
-// This provides more specific types than 'any' to satisfy TypeScript.
-interface AdobeViewer {
-  getAPIs: () => Promise<{ gotoLocation: (page: number) => void;[key: string]: any; }>;
-  previewFile: (config: any, viewerConfig: any) => Promise<any>;
-}
-
-interface AdobeDC {
-  View: new (config: { clientId: string; divId: string }) => AdobeViewer;
-}
-
-// Extend the Window interface to include the AdobeDC object
-declare global {
-  interface Window {
-    AdobeDC?: AdobeDC;
-  }
-}
+import React, { useEffect, useRef, useState } from 'react';
+import WebViewer from '@pdftron/webviewer';
 
 // --- Component Props ---
 interface PDFViewerProps {
@@ -26,83 +9,104 @@ interface PDFViewerProps {
   pageNumber: number;
 }
 
-const AdobePDFViewer: React.FC<PDFViewerProps> = ({ docUrl, pageNumber }) => {
+// No global window script needed; we import WebViewer from the npm package
+
+const PdfJsExpressViewer: React.FC<PDFViewerProps> = ({ docUrl, pageNumber }) => {
   const viewerRef = useRef<HTMLDivElement>(null);
-  const adobeApiRef = useRef<AdobeViewer | null>(null);
+  const instanceRef = useRef<any>(null);
+  const docViewerRef = useRef<any>(null);
+  const [fallback, setFallback] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!docUrl) return;
+    if (!docUrl || !viewerRef.current) return;
 
-    // Read Adobe PDF Embed API Client ID from environment
-    const ADOBE_CLIENT_ID = process.env.NEXT_PUBLIC_ADOBE_CLIENT_ID;
-    if (!ADOBE_CLIENT_ID) {
-      console.error("Missing NEXT_PUBLIC_ADOBE_CLIENT_ID. Set it in .env.local");
-      return;
-    }
+    const encodedUrl = encodeURI(docUrl);
+    const LICENSE_KEY = process.env.NEXT_PUBLIC_WEBVIEWER_LICENSE_KEY || "lhtjC8RaxhywVxZsTvrC";
 
-    // Function to initialize the viewer once the SDK is ready
-    const initializeViewer = () => {
-      if (window.AdobeDC && viewerRef.current) {
-        const adobeDCView = new window.AdobeDC.View({
-          clientId: ADOBE_CLIENT_ID,
-          divId: viewerRef.current.id,
-        });
-
-        const previewFilePromise = adobeDCView.previewFile(
+    const init = async () => {
+      if (!viewerRef.current) return;
+      try {
+        const instance = await WebViewer(
           {
-            content: { location: { url: docUrl } },
-            metaData: { fileName: docUrl.split('/').pop() },
+            // Serve assets locally from public/webviewer/lib
+            path: '/webviewer/lib',
+            licenseKey: LICENSE_KEY,
+            initialDoc: encodedUrl,
+            fullAPI: true,
           },
-          {
-            embedMode: 'SIZED_CONTAINER',
-            showFullScreen: false,
-            showDownloadPDF: false,
-            showPrintPDF: false,
-            showAnnotationTools: false,
-          }
+          viewerRef.current
         );
-        previewFilePromise.then((adobeViewer) => {
-          adobeApiRef.current = adobeViewer;
-        });
+        instanceRef.current = instance;
+        // Prefer new API; fallback to legacy
+        const docViewer = instance?.Core?.documentViewer || instance?.docViewer;
+        const UI = instance?.UI;
+        docViewerRef.current = docViewer;
+
+        // Hide download/print to match previous behavior
+        try {
+          UI?.disableElements?.(['downloadButton', 'printButton']);
+        } catch {}
+
+        // Navigate to page once the document is loaded
+        const onDocLoaded = () => {
+          if (pageNumber && pageNumber > 0) {
+            try {
+              docViewer.setCurrentPage(pageNumber);
+            } catch {}
+          }
+        };
+        if (docViewer?.addEventListener) {
+          docViewer.addEventListener('documentLoaded', onDocLoaded);
+        } else if (docViewer?.on) {
+          docViewer.on('documentLoaded', onDocLoaded);
+        }
+      } catch (e) {
+        console.error('WebViewer init failed:', e);
+        setFallback(true);
       }
     };
-    
-    // If the SDK is already ready, initialize the viewer
-    if (window.AdobeDC) {
-      initializeViewer();
-    } else {
-      // Otherwise, add the event listener for when the SDK becomes ready
-      document.addEventListener('adobe_dc_view_sdk.ready', initializeViewer);
-    }
-    
-    // Load the Adobe script if it's not already on the page
-    if (!document.querySelector('script[src="https://acrobatservices.adobe.com/view-sdk/viewer.js"]')) {
-      const script = document.createElement('script');
-      script.src = 'https://acrobatservices.adobe.com/view-sdk/viewer.js';
-      script.async = true;
-      document.body.appendChild(script);
-    }
 
-    // Cleanup function to remove the event listener
+    // Directly initialize; no external script tag needed when using the npm package
+    init();
+
+    // Cleanup: dispose viewer if available
     return () => {
-      document.removeEventListener('adobe_dc_view_sdk.ready', initializeViewer);
+      try {
+        // Prefer UI.dispose when available
+        if (instanceRef.current?.UI?.dispose) {
+          instanceRef.current.UI.dispose();
+        } else if (instanceRef.current?.dispose) {
+          instanceRef.current.dispose();
+        }
+      } catch {}
+      instanceRef.current = null;
+      docViewerRef.current = null;
     };
+    // Re-init when docUrl changes only
   }, [docUrl]);
 
-  // Effect to handle page navigation
+  // Handle page updates after init
   useEffect(() => {
-    if (adobeApiRef.current && pageNumber) {
-      adobeApiRef.current.getAPIs().then((apis) => {
-        apis.gotoLocation(pageNumber);
-      });
+    if (docViewerRef.current && pageNumber && pageNumber > 0) {
+      try {
+        docViewerRef.current.setCurrentPage(pageNumber);
+      } catch {}
     }
   }, [pageNumber]);
 
   return (
     <div className="h-full w-full bg-slate-950">
-      <div id="adobe-pdf-viewer-container" ref={viewerRef} className="h-full w-full" />
+      {fallback ? (
+        <iframe
+          src={docUrl}
+          title="PDF Preview"
+          className="h-full w-full border-0 bg-white"
+        />
+      ) : (
+        <div id="pdfjs-express-viewer" ref={viewerRef} className="h-full w-full" />
+      )}
     </div>
   );
 };
 
-export default AdobePDFViewer;
+export default PdfJsExpressViewer;
