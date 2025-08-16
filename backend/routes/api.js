@@ -8,7 +8,14 @@
   // const DocumentCollection = require('../models/DocumentCollection');
   // const auth = require('../middleware/authMiddleware');
 
-    const upload = multer({ dest: path.join(__dirname, '../uploads/') });
+
+    // Ensure uploads directory always exists
+    const uploadsDir = path.join(__dirname, '../uploads/');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const upload = multer({ dest: uploadsDir });
 
   router.post('/upload', upload.array('pdfs'), async (req, res) => {
       const collectionPath = path.dirname(req.files[0].path);
@@ -61,7 +68,10 @@
             collectionName,
             analysisData: analysisResult
           });
-          fs.rm(collectionPath, { recursive: true, force: true }, () => {});
+          // Only delete if collectionPath is a subfolder of uploadsDir
+          if (collectionPath !== uploadsDir && collectionPath.startsWith(uploadsDir)) {
+            fs.rm(collectionPath, { recursive: true, force: true }, () => {});
+          }
         });
       } catch (error) {
         res.status(500).json({ error: 'Failed to process upload.' });

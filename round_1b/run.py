@@ -82,8 +82,13 @@ def analyze_collection(input_dir, output_path):
 
     print(f"Step 1: Extracting text from {len(pdf_files)} PDFs...")
     all_pages = [page for pdf_file in pdf_files for page in extract_pages(pdf_file)]
-    
     print(f"Step 2: Analyzing {len(all_pages)} pages...")
+    if not all_pages:
+        print("Warning: No pages extracted from PDFs. Skipping analysis.")
+        output_data = {"metadata": meta, "extracted_sections": [], "subsection_analysis": []}
+        with open(output_path, 'w', encoding='utf-8') as f:
+            json.dump(output_data, f, indent=2)
+        return
     bm25 = build_index([p["text"] for p in all_pages])
     X = features(all_pages, query, bm25)
     base_scores = MODEL_PACK['clf'].predict_proba(X)[:, 1]
