@@ -1,3 +1,4 @@
+"use client"
 import { ChevronDown, FileText, Lightbulb, Link, BarChart, PlayCircle, Clock, History, PlusCircle } from 'lucide-react';
 import LinkNext from 'next/link';
 

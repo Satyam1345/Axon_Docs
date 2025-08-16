@@ -1,3 +1,4 @@
+"use client"
 import { PanelLeftClose, PanelLeftOpen, LogOut } from 'lucide-react';
 
 function Header({ isSidebarOpen, toggleSidebar, onLogout }) {
