@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+
 import Header from "../components/Header.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import PdfJsExpressViewer from '../components/PDFViewer';
@@ -37,15 +38,30 @@ export default function PdfViewerPage() {
 	if (!file) return <div className="text-red-500">No PDF specified.</div>;
 	const docUrl = `/pdfs/${encodeURIComponent(file)}`;
 
-	return (
-		<div className="flex flex-col h-screen">
-			<Header isSidebarOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
-			<main className="flex flex-grow overflow-hidden">
-				<Sidebar isOpen={isSidebarOpen} data={analysisData || { collectionName: file }} history={history} onSectionSelect={() => {}} onCollectionSelect={() => {}} />
-				<div className="flex-grow h-full">
-					<PdfJsExpressViewer docUrl={docUrl} />
-				</div>
-			</main>
-		</div>
-	);
+		// Handler to switch PDFs by updating the query param
+		const handlePdfSelect = (pdfName) => {
+			if (pdfName && pdfName !== file) {
+				router.replace(`/pdfviewer?file=${encodeURIComponent(pdfName)}`);
+			}
+		};
+
+		return (
+			<div className="flex flex-col h-screen">
+				<Header isSidebarOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+				<main className="flex flex-grow overflow-hidden">
+					<Sidebar
+						isOpen={isSidebarOpen}
+						data={analysisData || { collectionName: file, documents: [file] }}
+						history={history}
+						onSectionSelect={() => {}}
+						onCollectionSelect={() => {}}
+						onPdfSelect={handlePdfSelect}
+						selectedPdf={file}
+					/>
+					<div className="flex-grow h-full">
+						<PdfJsExpressViewer docUrl={docUrl} />
+					</div>
+				</main>
+			</div>
+		);
 }

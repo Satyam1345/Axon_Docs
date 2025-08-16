@@ -2,8 +2,11 @@
 import { ChevronDown, FileText, Lightbulb, Link, BarChart, PlayCircle, Clock, History, PlusCircle } from 'lucide-react';
 import LinkNext from 'next/link';
 
-function Sidebar({ isOpen, data, history, onSectionSelect, onCollectionSelect }) {
+
+function Sidebar({ isOpen, data, history, onSectionSelect, onCollectionSelect, onPdfSelect, selectedPdf }) {
   if (!isOpen) return null;
+
+  const pdfList = (data && data.documents) ? data.documents : [];
 
   return (
     <aside className="w-80 bg-slate-800/70 border-r border-slate-700 flex-shrink-0 flex flex-col">
@@ -25,6 +28,23 @@ function Sidebar({ isOpen, data, history, onSectionSelect, onCollectionSelect })
                 </LinkNext>
             </div>
         </div>
+        {/* PDF List */}
+        {pdfList.length > 0 && (
+          <div className="mt-4">
+            <h3 className="text-xs font-semibold text-slate-400 mb-2 flex items-center gap-2"><FileText size={14}/>PDFs in Collection</h3>
+            <div className="flex flex-col gap-1">
+              {pdfList.map(pdf => (
+                <button
+                  key={pdf}
+                  onClick={() => onPdfSelect && onPdfSelect(pdf)}
+                  className={`text-left px-2 py-1 rounded-md ${selectedPdf === pdf ? 'bg-blue-700 text-white' : 'hover:bg-slate-700 text-blue-300'}`}
+                >
+                  {pdf}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="px-4 space-y-6 flex-grow overflow-y-auto">
