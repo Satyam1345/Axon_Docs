@@ -29,7 +29,12 @@ export default function UploadPage() {
     try {
       const analysisData = await uploadDocumentCollection(files, collectionName, persona, jobToBeDone);
       sessionStorage.setItem('analysisData', JSON.stringify(analysisData));
-      router.push('/dashboard');
+      // Redirect to PDF viewer for the first uploaded file
+      if (files.length > 0) {
+        router.push(`/pdfviewer?file=${encodeURIComponent(files[0].name)}`);
+      } else {
+        router.push('/dashboard');
+      }
     } catch (err) {
       setError('Failed to upload and process the collection.');
     } finally {
