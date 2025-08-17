@@ -6,6 +6,7 @@ import Header from "../components/Header.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import { uploadDocumentCollection } from '../lib/api';
 import PdfJsExpressViewer from '../components/PDFViewer';
+import PodcastSidebar from '../components/PodcastSidebar';
 import { Loader2 } from 'lucide-react';
 import { getHistory } from '../lib/api';
 
@@ -17,6 +18,7 @@ export default function PdfViewerPage() {
 			const [documents, setDocuments] = useState([]);
 			const [isAdding, setIsAdding] = useState(false);
 		const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+		const [isPodcastSidebarOpen, setIsPodcastSidebarOpen] = useState(false);
 		const [selectedFile, setSelectedFile] = useState(file);
 
 	useEffect(() => {
@@ -68,7 +70,11 @@ export default function PdfViewerPage() {
 
 		return (
 			<div className="flex flex-col h-screen bg-white text-red-700">
-				<Header isSidebarOpen={isSidebarOpen} toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+				<Header 
+					isSidebarOpen={isSidebarOpen} 
+					toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+					onTogglePodcast={() => setIsPodcastSidebarOpen(!isPodcastSidebarOpen)}
+				/>
 				<main className="flex flex-grow overflow-hidden">
 									<Sidebar
 										isOpen={isSidebarOpen}
@@ -83,6 +89,10 @@ export default function PdfViewerPage() {
 							<PdfJsExpressViewer docUrl={docUrl} />
 						</div>
 					</div>
+					<PodcastSidebar 
+						isOpen={isPodcastSidebarOpen} 
+						onClose={() => setIsPodcastSidebarOpen(false)} 
+					/>
 				</main>
 			</div>
 		);
