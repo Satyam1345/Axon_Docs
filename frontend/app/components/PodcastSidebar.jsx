@@ -1,12 +1,13 @@
 'use client';
 import { X, Mic } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { createPodcastScriptPrompt } from '@/lib/prompts';
 
 export default function PodcastSidebar({ isOpen, onClose }) {
   const [text, setText] = useState('');
   const [persona, setPersona] = useState('');
   const [jobTask, setJobTask] = useState('');
+  const [audioUrl, setAudioUrl] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -19,10 +20,37 @@ export default function PodcastSidebar({ isOpen, onClose }) {
     }
   }, [isOpen]);
 
-  const handleGenerate = () => {
-    const prompt = createPodcastScriptPrompt(text, persona, jobTask);
-    console.log('Generated Prompt for LLM:', prompt);
-    // We will implement the backend call here later
+  const handleGenerate = async () => {
+    if (!text) {
+      alert('Please enter some text to generate a podcast.');
+      return;
+    }
+    setIsLoading(true);
+    setAudioUrl('');
+    try {
+      const response = await fetch('/api/generate-podcast', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text, persona, jobTask }),
+      });
+
+      if (!response.ok) {
+        // Try to parse error response as JSON
+        const errorData = await response.json().catch(() => ({ error: 'An unknown error occurred.' }));
+        throw new Error(errorData.error || 'Failed to generate podcast audio.');
+      }
+
+      const audioBlob = await response.blob();
+      const url = URL.createObjectURL(audioBlob);
+      setAudioUrl(url);
+    } catch (error) {
+      console.error('Error generating podcast:', error);
+      alert(error.message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -42,11 +70,29 @@ export default function PodcastSidebar({ isOpen, onClose }) {
         />
         <button
           onClick={handleGenerate}
-          className="w-full py-2 rounded flex items-center justify-center gap-2 bg-red-700 hover:bg-red-800 text-white"
+          disabled={isLoading}
+          className="w-full py-2 rounded flex items-center justify-center gap-2 bg-red-700 hover:bg-red-800 text-white disabled:bg-red-400"
         >
-          <Mic size={16} />
-          Generate Podcast
+          {isLoading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <span>Generating...</span>
+            </>
+          ) : (
+            <>
+              <Mic size={16} />
+              <span>Generate Podcast</span>
+            </>
+          )}
         </button>
+        {audioUrl && (
+          <div className="mt-4">
+            <h3 className="font-bold mb-2 text-center">Podcast Ready</h3>
+            <audio controls src={audioUrl} className="w-full">
+              Your browser does not support the audio element.
+            </audio>
+          </div>
+        )}
       </div>
     </div>
   );

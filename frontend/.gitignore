@@ -36,6 +36,7 @@ yarn-error.log*
 public/pdfs
 # vercel
 .vercel
+gcp-credentials.json
 
 # typescript
 *.tsbuildinfo
