@@ -2,11 +2,44 @@
 import { X, Mic } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
+/**
+ * A dedicated component to handle the lifecycle of a single audio player.
+ * It creates a temporary URL from the audio blob and revokes it on cleanup.
+ */
+const AudioPlayer = ({ audioBlob, originalText }) => {
+  const [audioUrl, setAudioUrl] = useState('');
+
+  useEffect(() => {
+    if (audioBlob) {
+      const url = URL.createObjectURL(audioBlob);
+      setAudioUrl(url);
+
+      // Cleanup function to revoke the object URL to prevent memory leaks
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    }
+  }, [audioBlob]);
+
+  if (!audioUrl) {
+    return null; // Don't render anything if the URL isn't ready
+  }
+
+  return (
+    <div className="mt-4 p-2 border border-red-200 rounded-md bg-white">
+      <p className="text-xs text-gray-500 mb-2 truncate" title={originalText}>{originalText}</p>
+      <audio controls src={audioUrl} className="w-full">
+        Your browser does not support the audio element.
+      </audio>
+    </div>
+  );
+};
+
 export default function PodcastSidebar({ isOpen, onClose }) {
   const [text, setText] = useState('');
   const [persona, setPersona] = useState('');
   const [jobTask, setJobTask] = useState('');
-  const [audioUrl, setAudioUrl] = useState('');
+  const [podcastHistory, setPodcastHistory] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -26,7 +59,6 @@ export default function PodcastSidebar({ isOpen, onClose }) {
       return;
     }
     setIsLoading(true);
-    setAudioUrl('');
     try {
       const response = await fetch('/api/generate-podcast', {
         method: 'POST',
@@ -37,14 +69,19 @@ export default function PodcastSidebar({ isOpen, onClose }) {
       });
 
       if (!response.ok) {
-        // Try to parse error response as JSON
         const errorData = await response.json().catch(() => ({ error: 'An unknown error occurred.' }));
         throw new Error(errorData.error || 'Failed to generate podcast audio.');
       }
 
       const audioBlob = await response.blob();
-      const url = URL.createObjectURL(audioBlob);
-      setAudioUrl(url);
+      
+      // Add the new podcast object (with the actual blob) to the history
+      setPodcastHistory(prevHistory => [
+        { id: Date.now(), originalText: text, audioBlob }, 
+        ...prevHistory
+      ]);
+      setText(''); // Clear the textarea for the next input
+
     } catch (error) {
       console.error('Error generating podcast:', error);
       alert(error.message);
@@ -85,14 +122,15 @@ export default function PodcastSidebar({ isOpen, onClose }) {
             </>
           )}
         </button>
-        {audioUrl && (
-          <div className="mt-4">
-            <h3 className="font-bold mb-2 text-center">Podcast Ready</h3>
-            <audio controls src={audioUrl} className="w-full">
-              Your browser does not support the audio element.
-            </audio>
-          </div>
-        )}
+        <div className="w-full h-[calc(100vh-20rem)] overflow-y-auto space-y-4">
+          {podcastHistory.map((podcast) => (
+            <AudioPlayer 
+              key={podcast.id} 
+              audioBlob={podcast.audioBlob} 
+              originalText={podcast.originalText} 
+            />
+          ))}
+        </div>
       </div>
     </div>
   );
