@@ -17,6 +17,14 @@ from sklearn.feature_extraction.text import HashingVectorizer
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.stdout.reconfigure(encoding='utf-8')
 
+# --- VENV ACTIVATION ---
+# This ensures the script uses packages from the local venv
+script_dir = os.path.dirname(os.path.abspath(__file__))
+venv_site_packages = os.path.join(script_dir, 'venv', 'Lib', 'site-packages')
+if os.path.exists(venv_site_packages) and venv_site_packages not in sys.path:
+    sys.path.insert(0, venv_site_packages)
+# --- END VENV ACTIVATION ---
+
 # --- Model Loading ---
 print("Loading AI models from:", SCRIPT_DIR)
 try:

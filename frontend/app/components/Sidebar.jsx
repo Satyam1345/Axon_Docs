@@ -1,54 +1,42 @@
 "use client"
-import { ChevronDown, FileText, Lightbulb, Link, BarChart, PlayCircle, Clock, History, PlusCircle } from 'lucide-react';
-import LinkNext from 'next/link';
+import { PlusCircle, Loader2 } from 'lucide-react';
+import React, { useRef } from 'react';
 
 
-function Sidebar({ isOpen, data, history, onSectionSelect, onCollectionSelect, onPdfSelect, selectedPdf }) {
+function Sidebar({ isOpen, documents = [], onPdfSelect, selectedPdf, onAddFiles, isAdding }) {
   if (!isOpen) return null;
 
-  const pdfList = (data && data.documents) ? data.documents : [];
-
+  const fileInputRef = useRef(null);
+  const handleAddClick = () => fileInputRef.current?.click();
+  const handleFilesChange = (e) => {
+    const files = e.target.files && Array.from(e.target.files);
+    if (files && files.length && onAddFiles) onAddFiles(files);
+    e.target.value = null;
+  };
   return (
-    <aside className="w-80 bg-white border-r border-red-700 flex-shrink-0 flex flex-col">
-      <div className="p-4 flex flex-col gap-4">
-        <div className="group relative">
-            <button className="w-full flex items-center justify-between p-2 bg-red-100 rounded-md text-red-700">
-                <span className="font-semibold truncate">{data.collectionName}</span>
-                <ChevronDown size={20} />
-            </button>
-            <div className="absolute top-full mt-2 w-full bg-white rounded-md shadow-lg p-2 z-10 hidden group-hover:block">
-                <h3 className="px-2 pb-2 text-xs font-semibold text-red-700 border-b border-red-200 flex items-center gap-2"><History size={14}/>Recent Collections</h3>
-                <div className="max-h-48 overflow-y-auto mt-2">
-                    {history.map(item => (
-                        <a key={item._id} href="#" onClick={() => onCollectionSelect(item)} className="block p-2 text-sm rounded-md hover:bg-red-100 text-red-700">{item.collectionName}</a>
-                    ))}
-                </div>
-                <LinkNext href="/upload" className="flex items-center gap-2 mt-2 p-2 text-sm rounded-md bg-red-500 hover:bg-red-600 text-white">
-                    <PlusCircle size={16}/> New Analysis
-                </LinkNext>
-            </div>
-        </div>
-        {/* PDF List */}
-        {pdfList.length > 0 && (
-          <div className="mt-4">
-            <h3 className="text-xs font-semibold text-red-700 mb-2 flex items-center gap-2"><FileText size={14}/>PDFs in Collection</h3>
-            <div className="flex flex-col gap-1">
-              {pdfList.map(pdf => (
-                <button
-                  key={pdf}
-                  onClick={() => onPdfSelect && onPdfSelect(pdf)}
-                  className={`text-left px-2 py-1 rounded-md ${selectedPdf === pdf ? 'bg-red-700 text-white' : 'hover:bg-red-100 text-red-700'}`}
-                >
-                  {pdf}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
-      <div className="px-4 space-y-6 flex-grow overflow-y-auto bg-white">
-        {/* Key Insights, Highlighted Sections, etc. (same as before) */}
+    <aside className="w-64 bg-white border-r border-red-700 flex-shrink-0 flex flex-col p-4">
+      <h2 className="text-lg font-bold text-red-700 mb-3">Documents</h2>
+      <ul className="flex flex-col gap-1 flex-grow overflow-y-auto">
+        {documents.map((doc) => (
+          <li
+            key={doc}
+            onClick={() => onPdfSelect?.(doc)}
+            className={`cursor-pointer px-2 py-1 rounded ${selectedPdf === doc ? 'bg-red-700 text-white' : 'hover:bg-red-100 text-red-700'}`}
+          >
+            {doc}
+          </li>
+        ))}
+      </ul>
+      <div className="mt-4">
+        <button
+          onClick={handleAddClick}
+          disabled={isAdding}
+          className={`w-full py-2 rounded flex items-center justify-center gap-2 ${isAdding ? 'bg-red-500 cursor-not-allowed' : 'bg-red-700 hover:bg-red-800'} text-white`}
+        >
+          {isAdding ? <Loader2 className="h-5 w-5 animate-spin" /> : <PlusCircle size={16} />}
+          {isAdding ? 'Processing...' : 'Add Files'}
+        </button>
+        <input ref={fileInputRef} type="file" accept=".pdf" multiple className="hidden" onChange={handleFilesChange} />
       </div>
     </aside>
   );
