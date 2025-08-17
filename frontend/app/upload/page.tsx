@@ -36,6 +36,7 @@ export default function UploadPage() {
         jobToBeDone
       );
       sessionStorage.setItem("analysisData", JSON.stringify(analysisData));
+      sessionStorage.setItem("podcastContext", JSON.stringify({ persona, jobTask: jobToBeDone }));
       // Redirect to PDF viewer for the first uploaded file
       if (files.length > 0) {
         router.push(`/pdfviewer?file=${encodeURIComponent(files[0].name)}`);
