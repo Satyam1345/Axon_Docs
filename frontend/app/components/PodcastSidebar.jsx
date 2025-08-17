@@ -40,7 +40,8 @@ export default function PodcastSidebar({ isOpen, onClose }) {
   const [persona, setPersona] = useState('');
   const [jobTask, setJobTask] = useState('');
   const [podcastHistory, setPodcastHistory] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingText, setIsLoadingText] = useState(false);
+  const [isLoadingOverview, setIsLoadingOverview] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -58,7 +59,7 @@ export default function PodcastSidebar({ isOpen, onClose }) {
       alert('Please enter some text to generate a podcast.');
       return;
     }
-    setIsLoading(true);
+  setIsLoadingText(true);
     try {
       const response = await fetch('/api/generate-podcast', {
         method: 'POST',
@@ -82,47 +83,75 @@ export default function PodcastSidebar({ isOpen, onClose }) {
       ]);
       setText(''); // Clear the textarea for the next input
 
-    } catch (error) {
+  } catch (error) {
       console.error('Error generating podcast:', error);
       alert(error.message);
     } finally {
-      setIsLoading(false);
+      setIsLoadingText(false);
+    }
+  };
+
+  // Master overview generation across all uploaded PDFs
+  const handleOverviewGenerate = async () => {
+  setIsLoadingOverview(true);
+    try {
+      const response = await fetch('/api/generate-overview-podcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ persona, jobTask }),
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unexpected error.' }));
+        throw new Error(errorData.error || 'Failed to generate overview podcast.');
+      }
+      const audioBlob = await response.blob();
+      setPodcastHistory(prev => [
+        { id: Date.now(), originalText: 'Overview of all documents', audioBlob },
+        ...prev,
+      ]);
+  } catch (error) {
+      console.error('Error generating overview podcast:', error);
+      alert(error.message);
+    } finally {
+      setIsLoadingOverview(false);
     }
   };
 
   return (
-    <div className={`transition-all duration-300 ease-in-out bg-red-50 border-l border-red-200 text-red-700 p-4 shadow-lg ${isOpen ? 'w-80' : 'w-0'}`}>
-      <div className={`flex justify-between items-center mb-4 ${!isOpen && 'hidden'}`}>
-        <h2 className="text-xl font-bold">Podcast Mode</h2>
-        <button onClick={onClose} className="text-red-700 hover:text-red-900">
-          <X size={24} />
-        </button>
-      </div>
-      <div className={`space-y-4 ${!isOpen && 'hidden'}`}>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Enter text for the podcast..."
-          className="w-full h-40 p-2 border border-red-200 rounded-md bg-white text-gray-800 focus:ring-2 focus:ring-red-500"
-        />
-        <button
-          onClick={handleGenerate}
-          disabled={isLoading}
-          className="w-full py-2 rounded flex items-center justify-center gap-2 bg-red-700 hover:bg-red-800 text-white disabled:bg-red-400"
-        >
-          {isLoading ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              <span>Generating...</span>
-            </>
-          ) : (
-            <>
-              <Mic size={16} />
-              <span>Generate Podcast</span>
-            </>
-          )}
-        </button>
-        <div className="w-full h-[calc(100vh-20rem)] overflow-y-auto space-y-4">
+    <div className={`transition-all duration-300 ease-in-out bg-red-50 border-l border-red-200 text-red-700 p-4 shadow-lg h-full ${isOpen ? 'w-80' : 'w-0'}`}> 
+      <div className={`${!isOpen && 'hidden'} flex flex-col h-full`}> 
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Podcast Mode</h2>
+          <button onClick={onClose} className="text-red-700 hover:text-red-900">
+            <X size={24} />
+          </button>
+        </div>
+        <div className="space-y-4 mb-4">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder="Enter text for the podcast..."
+            className="w-full h-40 p-2 border border-red-200 rounded-md bg-white text-gray-800 focus:ring-2 focus:ring-red-500"
+          />
+          <button
+            onClick={handleGenerate}
+            disabled={isLoadingText}
+            className="w-full py-2 rounded flex items-center justify-center gap-2 bg-red-700 hover:bg-red-800 text-white disabled:bg-red-400"
+          >
+            {isLoadingText ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Generating...</span>
+              </>
+            ) : (
+              <>
+                <Mic size={16} />
+                <span>Generate Podcast</span>
+              </>
+            )}
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto space-y-4 mb-4">
           {podcastHistory.map((podcast) => (
             <AudioPlayer 
               key={podcast.id} 
@@ -131,6 +160,20 @@ export default function PodcastSidebar({ isOpen, onClose }) {
             />
           ))}
         </div>
+        <button
+          onClick={handleOverviewGenerate}
+          disabled={isLoadingOverview}
+          className="w-full py-2 rounded flex items-center justify-center gap-2 bg-red-700 hover:bg-red-800 text-white disabled:bg-red-400"
+        >
+          {isLoadingOverview ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <span>Generating Overview...</span>
+            </>
+          ) : (
+            <span>Generate Overview Podcast</span>
+          )}
+        </button>
       </div>
     </div>
   );
