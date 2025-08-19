@@ -94,8 +94,20 @@ export default function PdfViewerPage() {
 				<Header 
 					isSidebarOpen={isSidebarOpen} 
 					toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-					onTogglePodcast={() => setIsPodcastSidebarOpen(!isPodcastSidebarOpen)}
-					onToggleInsights={() => setIsInsightsSidebarOpen(!isInsightsSidebarOpen)}
+					onTogglePodcast={() => {
+						setIsPodcastSidebarOpen((prev) => {
+							const next = !prev;
+							if (next) setIsInsightsSidebarOpen(false);
+							return next;
+						});
+					}}
+					onToggleInsights={() => {
+						setIsInsightsSidebarOpen((prev) => {
+							const next = !prev;
+							if (next) setIsPodcastSidebarOpen(false);
+							return next;
+						});
+					}}
 				/>
 				<main className="flex flex-grow overflow-hidden">
 									<Sidebar

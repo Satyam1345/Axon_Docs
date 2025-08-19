@@ -1,15 +1,19 @@
 'use client';
 import { X, Brain, Lightbulb } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 /**
  * A component to display individual insights with proper formatting
  */
 const InsightDisplay = ({ insight, originalText }) => {
   return (
-    <div className="mt-4 p-3 border border-blue-200 rounded-md bg-white">
+    <div className="mt-4 p-3 border border-red-200 rounded-md bg-white">
       <p className="text-xs text-gray-500 mb-2 truncate" title={originalText}>{originalText}</p>
-      <div className="text-sm text-gray-800 whitespace-pre-wrap">{insight}</div>
+      <div className="prose prose-sm max-w-none prose-headings:mt-3 prose-headings:mb-2 prose-p:my-2 prose-strong:text-gray-900 prose-a:text-red-700">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{String(insight || '')}</ReactMarkdown>
+      </div>
     </div>
   );
 };
@@ -97,25 +101,25 @@ export default function InsightsSidebar({ isOpen, onClose }) {
   };
 
   return (
-    <div className={`transition-all duration-300 ease-in-out bg-blue-50 border-l border-blue-200 text-blue-700 p-4 shadow-lg h-full ${isOpen ? 'w-80' : 'w-0'}`}> 
+    <div className={`transition-all duration-300 ease-in-out bg-red-50 border-l border-red-200 text-red-700 p-4 shadow-lg h-full ${isOpen ? 'w-full md:w-[19rem] shrink-0 flex-none' : 'w-0'}`}> 
       <div className={`${!isOpen && 'hidden'} flex flex-col h-full`}> 
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">AI Insights</h2>
-          <button onClick={onClose} className="text-blue-700 hover:text-blue-900">
+          <button onClick={onClose} className="text-red-700 hover:text-red-900" aria-label="Close insights">
             <X size={24} />
           </button>
         </div>
-        <div className="space-y-4 mb-4">
+        <div className="space-y-3 mb-4">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter text for AI analysis..."
-            className="w-full h-40 p-2 border border-blue-200 rounded-md bg-white text-gray-800 focus:ring-2 focus:ring-blue-500"
+            className="w-full h-40 p-2 border border-red-200 rounded-md bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <button
             onClick={handleGenerate}
             disabled={isLoadingText}
-            className="w-full py-2 rounded flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white disabled:bg-blue-400"
+            className="w-full py-2 rounded flex items-center justify-center gap-2 bg-red-700 hover:bg-red-800 text-white disabled:bg-red-400"
           >
             {isLoadingText ? (
               <>
@@ -131,18 +135,21 @@ export default function InsightsSidebar({ isOpen, onClose }) {
           </button>
         </div>
         <div className="flex-1 overflow-y-auto space-y-4 mb-4">
-          {insightsHistory.map((insight) => (
+          {insightsHistory.length === 0 && (
+            <div className="text-xs text-gray-500">No insights yet. Paste text or generate an overview.</div>
+          )}
+          {insightsHistory.map((ins) => (
             <InsightDisplay 
-              key={insight.id} 
-              insights={insight.insights} 
-              originalText={insight.originalText} 
+              key={ins.id} 
+              insight={ins.insights} 
+              originalText={ins.originalText} 
             />
           ))}
         </div>
         <button
           onClick={handleOverviewGenerate}
           disabled={isLoadingOverview}
-          className="w-full py-2 rounded flex items-center justify-center gap-2 bg-blue-700 hover:bg-blue-800 text-white disabled:bg-blue-400"
+          className="w-full py-2 rounded flex items-center justify-center gap-2 bg-red-700 hover:bg-red-800 text-white disabled:bg-red-400"
         >
           {isLoadingOverview ? (
             <>

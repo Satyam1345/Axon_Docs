@@ -15,7 +15,7 @@ function Header({ isSidebarOpen, toggleSidebar, onLogout, onTogglePodcast, onTog
           <Mic size={20} className="text-red-700" />
         </button>
         <button onClick={onToggleInsights} className="p-2 rounded-md hover:bg-red-100">
-          <Brain size={20} className="text-blue-700" />
+          <Brain size={20} className="text-red-700" />
         </button>
         <button onClick={onLogout} className="p-2 rounded-md hover:bg-red-100">
           <LogOut size={20} className="text-red-700" />

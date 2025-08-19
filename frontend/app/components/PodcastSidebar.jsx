@@ -118,20 +118,20 @@ export default function PodcastSidebar({ isOpen, onClose }) {
   };
 
   return (
-    <div className={`transition-all duration-300 ease-in-out bg-red-50 border-l border-red-200 text-red-700 p-4 shadow-lg h-full ${isOpen ? 'w-80' : 'w-0'}`}> 
+    <div className={`transition-all duration-300 ease-in-out bg-red-50 border-l border-red-200 text-red-700 p-4 shadow-lg h-full ${isOpen ? 'w-full md:w-[19rem] shrink-0 flex-none' : 'w-0'}`}> 
       <div className={`${!isOpen && 'hidden'} flex flex-col h-full`}> 
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold">Podcast Mode</h2>
-          <button onClick={onClose} className="text-red-700 hover:text-red-900">
+          <button onClick={onClose} className="text-red-700 hover:text-red-900" aria-label="Close podcast">
             <X size={24} />
           </button>
         </div>
-        <div className="space-y-4 mb-4">
+        <div className="space-y-3 mb-4">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Enter text for the podcast..."
-            className="w-full h-40 p-2 border border-red-200 rounded-md bg-white text-gray-800 focus:ring-2 focus:ring-red-500"
+            className="w-full h-40 p-2 border border-red-200 rounded-md bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-red-500"
           />
           <button
             onClick={handleGenerate}
