@@ -37,13 +37,13 @@ export default function HomePage() {
       <div className="absolute inset-0">
         {/* Floating PDF Icons */}
         <div className="absolute top-20 left-20 opacity-10">
-          <FileText className="w-16 h-16 text-white animate-float" />
+          <FileText className="w-16 h-16 text-white animate-fade-in" />
         </div>
         <div className="absolute top-40 right-32 opacity-10">
-          <FileText className="w-20 h-20 text-white animate-float-delayed" />
+          <FileText className="w-20 h-20 text-white animate-fade-in" />
         </div>
         <div className="absolute bottom-32 left-40 opacity-10">
-          <FileText className="w-12 h-12 text-white animate-float-slow" />
+          <FileText className="w-12 h-12 text-white animate-fade-in" />
         </div>
         
         {/* Geometric Shapes */}
@@ -59,32 +59,23 @@ export default function HomePage() {
       {/* Main Content */}
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-8 text-center">
         {/* Logo/Icon Section */}
-        <div className="mb-8 animate-scale-in">
+        <div className="mb-8 animate-fade-in">
           <div className="relative">
-            <div className="w-24 h-24 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30 flex items-center justify-center mb-6 mx-auto animate-bounce-gentle">
+            <div className="w-24 h-24 bg-white/20 rounded-2xl backdrop-blur-sm border border-white/30 flex items-center justify-center mb-6 mx-auto">
               <FileText className="w-12 h-12 text-white" />
-              <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-yellow-300 animate-pulse" />
+              <Sparkles className="absolute -top-2 -right-2 w-6 h-6 text-yellow-300" />
             </div>
           </div>
         </div>
 
         {/* Main Title */}
-        <div className="mb-8 animate-fade-in-up">
+        <div className="mb-8 animate-slide-up">
           <h1 className="text-6xl md:text-7xl font-bold text-white mb-4 tracking-tight">
-            <span className="inline-block animate-letter-float">W</span>
-            <span className="inline-block animate-letter-float delay-100">E</span>
-            <span className="inline-block animate-letter-float delay-200">L</span>
-            <span className="inline-block animate-letter-float delay-300">C</span>
-            <span className="inline-block animate-letter-float delay-400">O</span>
-            <span className="inline-block animate-letter-float delay-500">M</span>
-            <span className="inline-block animate-letter-float delay-600">E</span>
-            <span className="mx-4"></span>
-            <span className="inline-block animate-letter-float delay-700">T</span>
-            <span className="inline-block animate-letter-float delay-800">O</span>
+            WELCOME TO
           </h1>
           
           <div className="relative">
-            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-red-100 to-white bg-clip-text text-transparent animate-gradient-shift">
+            <h2 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-white via-red-100 to-white bg-clip-text text-transparent">
               ADOBE PDF LIFE
             </h2>
             {/* Animated underline */}
