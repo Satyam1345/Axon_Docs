@@ -124,34 +124,52 @@ def analyze_collection(input_dir, output_path):
     candidate_pages = [all_pages[i] for i in candidate_indices]
 
     print(f"Step 3: Re-ranking {len(candidate_pages)} candidates...")
-    reranked_pages = []
-    top_k = 10
-    if len(candidate_pages) > 0:
-        ce_scores = CE.predict([[query, p["text"][:4096]] for p in candidate_pages], show_progress_bar=False)
-        reranked_pages = sorted(zip(candidate_pages, ce_scores), key=lambda x: x[1], reverse=True)[:top_k]
-    # Fallback: if no candidates survived, pick top_k by BM25 across all pages
-    if len(reranked_pages) == 0:
-        print("No candidates after threshold; using BM25 fallback.")
-        all_bm25_scores = bm25.get_scores(query.split())
-        # Pair each page with its score and sort descending
-        scored_pages = list(zip(all_pages, all_bm25_scores))
-        scored_pages.sort(key=lambda x: x[1], reverse=True)
-        reranked_pages = scored_pages[:top_k]
+    # Global ranking across all pages (common order across PDFs)
+    # Primary score: CE (if available), fallback to BM25. Secondary tie-breaker: BM25 and heading flag.
+    top_k = 20
+    ce_scored = []  # (page_data, ce_score, bm25_score, is_head)
+    try:
+        if len(candidate_pages) > 0:
+            ce_scores = CE.predict([[query, p["text"][:4096]] for p in candidate_pages], show_progress_bar=False)
+            # Precompute BM25 scores for candidate pages as tie-breakers
+            bm25_scores_all = bm25.get_scores(query.split())
+            bm25_map = {id(p): s for p, s in zip(all_pages, bm25_scores_all)}
+            for p, ce in zip(candidate_pages, ce_scores):
+                ce_scored.append((p, float(ce), float(bm25_map.get(id(p), 0.0)), 1.0 if p.get("is_head") else 0.0))
+    except Exception as e:
+        print(f"CrossEncoder scoring failed ({e}); using BM25 global ranking.")
+        ce_scored = []
+
+    ranked = []
+    if ce_scored:
+        # Sort by CE desc, then BM25 desc, then heading desc
+        ranked = sorted(ce_scored, key=lambda x: (x[1], x[2], x[3]), reverse=True)
+        ranked = ranked[:min(top_k, len(ranked))]
+        ranked = [(p, s_ce) for (p, s_ce, _, _) in ranked]
+    else:
+        # Global BM25 ranking across all pages
+        bm25_scores_all = bm25.get_scores(query.split())
+        # include heading as tie-breaker
+        ranked_bm25 = [(p, float(s), 1.0 if p.get("is_head") else 0.0) for p, s in zip(all_pages, bm25_scores_all)]
+        ranked_bm25.sort(key=lambda x: (x[1], x[2]), reverse=True)
+        ranked = [(p, s) for (p, s, _) in ranked_bm25[:min(top_k, len(ranked_bm25))]]
 
     final_sections = []
     subsection_items = []
-    for rank, (page_data, score) in enumerate(reranked_pages, 1):
+    for rank, (page_data, score) in enumerate(ranked, 1):
+        docname = page_data["doc"] + '.pdf'
+        title = page_data["text"].splitlines()[0][:120] if page_data["text"] else f"Page {page_data['page']}"
         final_sections.append({
-            "document": page_data["doc"] + '.pdf',
-            "section_title": page_data["text"].splitlines()[0][:120],
+            "document": docname,
+            "section_title": title,
             "importance_rank": rank,
             "page_number": page_data["page"]
         })
-        refined_text = page_data["text"].strip()
+        refined_text = page_data["text"].strip() if page_data["text"] else ""
         if len(refined_text) > 2000:
             refined_text = refined_text[:2000].rstrip() + "..."
         subsection_items.append({
-            "document": page_data["doc"] + '.pdf',
+            "document": docname,
             "refined_text": refined_text,
             "page_number": page_data["page"]
         })

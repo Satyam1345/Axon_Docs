@@ -92,8 +92,9 @@
         });
       } catch {}
       
-      // Create proper challenge1b_input.json structure
+  // Create proper challenge1b_input.json structure
       const pdfsInDir = fs.readdirSync(pdfsDir).filter(f => f.toLowerCase().endsWith('.pdf'));
+  console.log('PDFs included for analysis:', pdfsInDir);
       const documentsArray = pdfsInDir.map(filename => ({
         filename: filename,
         title: path.parse(filename).name
@@ -125,7 +126,7 @@
         console.warn('Warning: could not write uploads root input copy:', e.message || e);
       }
 
-      console.log('Created challenge1b_input.json:', JSON.stringify(inputJsonData, null, 2));
+  console.log('Created challenge1b_input.json with', documentsArray.length, 'documents.');
 
       try {
         const pythonScriptPath = path.resolve(__dirname, '../../round_1b/run.py');
