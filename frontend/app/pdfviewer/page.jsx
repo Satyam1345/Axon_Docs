@@ -117,14 +117,14 @@ export default function PdfViewerPage() {
 									.sort((a, b) => (a.importance_rank || 0) - (b.importance_rank || 0))
 									.map((s) => (
 										<li key={`${s.document}-${s.page_number}-${s.importance_rank}`}>
-											<button className="w-full text-left p-2 rounded hover:bg-red-100" onClick={() => {
+											<button className="w-full text-left p-2 rounded hover:bg-red-100 cursor-pointer" onClick={() => {
 												setSelectedPage(Number(s.page_number) || 1);
 												if (s.document !== selectedFile) {
 													setSelectedFile(s.document);
 													router.replace(`/pdfviewer?file=${encodeURIComponent(s.document)}`);
 												}
 											}}>
-												<div className="text-xs text-gray-500">Rank #{s.importance_rank} • Page {s.page_number}</div>
+												<div className="text-xs text-gray-500">Rank #{s.importance_rank} • {s.document}{String(s.document).toLowerCase().endsWith('.pdf') ? '' : '.pdf'} • Page {s.page_number}</div>
 												<div className="text-sm font-medium line-clamp-2">{s.section_title}</div>
 											</button>
 										</li>
