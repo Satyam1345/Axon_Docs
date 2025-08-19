@@ -5,7 +5,7 @@ import { setApis as setViewerApis, setNumPages as setViewerNumPages, gotoPage as
 
 // Replace with your Adobe PDF Embed API Client ID
 const ADOBE_CLIENT_ID = process.env.NEXT_PUBLIC_ADOBE_EMBED_CLIENT_ID || "<YOUR_CLIENT_ID_HERE>";
-console.log("[Adobe PDF Embed] Adobe Client ID:", ADOBE_CLIENT_ID);
+// console.log("[Adobe PDF Embed] Adobe Client ID:", ADOBE_CLIENT_ID);
 function AdobePDFViewer({ docUrl, pageNumber = 1 }) {
   const viewerRef = useRef(null);
 
