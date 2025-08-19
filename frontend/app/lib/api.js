@@ -27,3 +27,8 @@ export async function getHistory() {
   const res = await apiClient.get('/api/history');
   return res.data;
 }
+
+export async function getLatestOutput() {
+  const res = await apiClient.get('/api/output');
+  return res.data;
+}

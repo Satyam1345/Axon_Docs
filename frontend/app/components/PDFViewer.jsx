@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 // Replace with your Adobe PDF Embed API Client ID
 const ADOBE_CLIENT_ID = process.env.NEXT_PUBLIC_ADOBE_EMBED_CLIENT_ID || "<YOUR_CLIENT_ID_HERE>";
 console.log("[Adobe PDF Embed] Adobe Client ID:", ADOBE_CLIENT_ID);
-function AdobePDFViewer({ docUrl }) {
+function AdobePDFViewer({ docUrl, pageNumber = 1 }) {
   const viewerRef = useRef(null);
 
   useEffect(() => {
@@ -63,8 +63,8 @@ function AdobePDFViewer({ docUrl }) {
         content: { location: { url: docUrl } },
         metaData: { fileName },
       }, {
-        embedMode: "FULL_WINDOW",          // use full window to restore toolbar
-        defaultViewMode: "FIT_WIDTH",
+        embedMode: "FULL_WINDOW",
+        defaultViewMode: "FIT_PAGE", // ensure full page is visible initially
         showAnnotationTools: true,           // enable annotation tools
         showLeftHandPanel: true,            // show bookmarks/thumbnails
         showDownloadPDF: true,
@@ -74,6 +74,17 @@ function AdobePDFViewer({ docUrl }) {
         previewPromise.then(
           (res) => {
             console.log("[Adobe PDF Embed] previewFile resolved:", res);
+            // Navigate to requested page once APIs are available
+            if (typeof adobeDCView.getAPIs === 'function') {
+              adobeDCView.getAPIs().then((apis) => {
+                try {
+                  const targetPage = Number(pageNumber) > 0 ? Number(pageNumber) : 1;
+                  apis.gotoLocation(targetPage);
+                } catch (e) {
+                  console.warn("[Adobe PDF Embed] Failed to navigate to page:", e);
+                }
+              }).catch(() => {});
+            }
             // Register event callbacks for user interactions
             adobeDCView.registerCallback(
               AdobeDC.View.Enum.CallbackType.TEXT_SELECTION,
