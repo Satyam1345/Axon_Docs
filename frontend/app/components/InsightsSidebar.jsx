@@ -9,9 +9,13 @@ import remarkGfm from 'remark-gfm';
  */
 const InsightDisplay = ({ insight, originalText }) => {
   return (
-    <div className="mt-4 p-3 border border-red-200 rounded-md bg-white">
-      <p className="text-xs text-gray-500 mb-2 truncate" title={originalText}>{originalText}</p>
-      <div className="prose prose-sm max-w-none prose-headings:mt-3 prose-headings:mb-2 prose-p:my-2 prose-strong:text-gray-900 prose-a:text-red-700">
+    <div className="p-4 border border-red-200 rounded-lg bg-white shadow-sm">
+      <div className="mb-3">
+        <p className="text-xs text-red-600/70 font-medium truncate" title={originalText}>
+          📄 Source: {originalText}
+        </p>
+      </div>
+      <div className="prose prose-sm max-w-none prose-headings:text-red-800 prose-headings:font-bold prose-headings:mt-4 prose-headings:mb-2 prose-p:my-2 prose-p:text-gray-700 prose-strong:text-gray-900 prose-a:text-red-700 prose-ul:my-2 prose-li:my-1">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{String(insight || '')}</ReactMarkdown>
       </div>
     </div>
@@ -109,34 +113,48 @@ export default function InsightsSidebar({ isOpen, onClose }) {
             <X size={24} />
           </button>
         </div>
-        <div className="space-y-3 mb-4">
-          <textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Enter text for AI analysis..."
-            className="w-full h-40 p-2 border border-red-200 rounded-md bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-red-500"
-          />
+        <div className="space-y-4 mb-4">
+          <div>
+            <label className="block text-sm font-medium text-red-700 mb-2">
+              Text for Analysis
+            </label>
+            <textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Enter text to generate comprehensive insights including key takeaways, facts, contradictions, examples, and W-questions analysis..."
+              className="w-full h-32 p-3 border border-red-200 rounded-lg bg-white text-gray-800 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none text-sm"
+            />
+          </div>
           <button
             onClick={handleGenerate}
             disabled={isLoadingText}
-            className="w-full py-2 rounded flex items-center justify-center gap-2 bg-red-700 hover:bg-red-800 text-white disabled:bg-red-400"
+            className="w-full py-3 rounded-lg flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white disabled:from-red-400 disabled:to-red-500 font-medium transition-all duration-200 shadow-sm hover:shadow-md"
           >
             {isLoadingText ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                <span>Generating...</span>
+                <span>Generating Insights...</span>
               </>
             ) : (
               <>
                 <Brain size={16} />
-                <span>Generate Insights</span>
+                <span>Generate Comprehensive Insights</span>
               </>
             )}
           </button>
+          <div className="text-xs text-red-600/70 italic">
+            💡 Generates: Key takeaways, facts, contradictions, examples, and W-questions analysis
+          </div>
         </div>
-        <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+        <div className="flex-1 overflow-y-auto space-y-4 mb-4 min-h-0">
           {insightsHistory.length === 0 && (
-            <div className="text-xs text-gray-500">No insights yet. Paste text or generate an overview.</div>
+            <div className="text-center py-8 px-4">
+              <Brain size={32} className="text-red-300 mx-auto mb-3" />
+              <p className="text-sm text-red-600/70 mb-2">No insights generated yet</p>
+              <p className="text-xs text-red-500/60">
+                Paste some text above or generate overview insights from your documents
+              </p>
+            </div>
           )}
           {insightsHistory.map((ins) => (
             <InsightDisplay 
@@ -146,23 +164,28 @@ export default function InsightsSidebar({ isOpen, onClose }) {
             />
           ))}
         </div>
-        <button
-          onClick={handleOverviewGenerate}
-          disabled={isLoadingOverview}
-          className="w-full py-2 rounded flex items-center justify-center gap-2 bg-red-700 hover:bg-red-800 text-white disabled:bg-red-400"
-        >
-          {isLoadingOverview ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-              <span>Generating Overview...</span>
-            </>
-          ) : (
-            <>
-              <Lightbulb size={16} />
-              <span>Generate Overview Insights</span>
-            </>
-          )}
-        </button>
+        <div className="flex-shrink-0 border-t border-red-200 pt-4">
+          <button
+            onClick={handleOverviewGenerate}
+            disabled={isLoadingOverview}
+            className="w-full py-3 rounded-lg flex items-center justify-center gap-2 bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white disabled:from-red-400 disabled:to-red-500 font-medium transition-all duration-200 shadow-sm hover:shadow-md"
+          >
+            {isLoadingOverview ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                <span>Generating Overview...</span>
+              </>
+            ) : (
+              <>
+                <Lightbulb size={16} />
+                <span>Generate Overview Insights</span>
+              </>
+            )}
+          </button>
+          <div className="text-xs text-red-600/70 italic mt-2 text-center">
+            📚 Analyzes all uploaded documents together
+          </div>
+        </div>
       </div>
     </div>
   );

@@ -9,7 +9,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
  */
 function createInsightsPrompt(topicText, persona = 'a curious learner', jobTask = 'understand the key insights') {
   return `
-You are an expert AI analyst specializing in extracting deep insights and actionable intelligence from text. Your task is to analyze the provided text and generate comprehensive insights that will help the user achieve their specific goal.
+You are an expert AI analyst specializing in extracting comprehensive insights and actionable intelligence from text. Your task is to analyze the provided text and generate structured insights that will help the user achieve their specific goal.
 
 **User Context:**
 *   **Persona:** The user identifies as **${persona}**.
@@ -17,16 +17,59 @@ You are an expert AI analyst specializing in extracting deep insights and action
 
 **Instructions:**
 
-1.  **Role:** Act as a strategic analyst providing deep, actionable insights tailored to the user's specific needs and background.
-2.  **Format:** Structure your response in clear sections with actionable insights, key takeaways, and strategic recommendations.
-3.  **Content Analysis:**
-    *   **Key Insights:** Identify 3-5 most important insights from the text that are directly relevant to the user's goal.
-    *   **Pattern Recognition:** Look for recurring themes, connections, or underlying principles.
-    *   **Actionable Intelligence:** Provide specific, actionable recommendations based on the insights.
-    *   **Risk Assessment:** Identify potential challenges or areas that need attention.
-    *   **Strategic Implications:** Explain how these insights impact the user's broader objectives.
-4.  **Style:** Write in a clear, professional, and insightful manner. Use bullet points and clear headings for easy reading.
-5.  **Focus:** Every insight should be directly relevant to helping the user achieve their stated goal.
+Analyze the provided text and structure your response with the following sections:
+
+## 🔑 Key Takeaways
+- Identify 3-5 most important insights directly relevant to the user's goal
+- Focus on actionable and strategic points
+
+## 💡 "Did You Know?" Facts
+- Extract 2-4 surprising, interesting, or lesser-known facts from the content
+- Highlight unique insights that might not be immediately obvious
+
+## ⚖️ Contradictions & Counterpoints
+- Identify any conflicting information, opposing viewpoints, or areas of debate
+- Note limitations, exceptions, or alternative perspectives mentioned
+
+## 📝 Examples & Case Studies
+- Extract specific examples, case studies, or practical applications mentioned
+- Include concrete instances that illustrate key concepts
+
+## 📊 The "W" Questions Analysis
+
+### 👥 WHO
+- Key people, stakeholders, or entities involved
+- Target audiences or affected groups
+
+### 📋 WHAT
+- Main concepts, processes, or phenomena described
+- Core activities or events
+
+### 🤔 WHY
+- Underlying reasons, motivations, or causes
+- Purpose and rationale behind key points
+
+### ⏰ WHEN
+- Timeline, chronology, or temporal aspects
+- Critical timing or deadlines mentioned
+
+### 📍 WHERE
+- Geographic locations, contexts, or settings
+- Spatial or environmental factors
+
+### 🔧 HOW
+- Methods, processes, or mechanisms described
+- Step-by-step approaches or implementations
+
+## 🎯 Strategic Implications
+- How these insights impact the user's broader objectives
+- Actionable recommendations based on the analysis
+
+**Style Guidelines:**
+- Use clear bullet points and structured formatting
+- Write in a professional yet accessible manner
+- Every insight should be directly relevant to the user's stated goal
+- Include specific references to the source text when possible
 
 **Source Text to Analyze:**
 ---
