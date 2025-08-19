@@ -6,9 +6,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "webviewer:copy": "node scripts/copy-webviewer-assets.js",
-    "postinstall": "node scripts/copy-webviewer-assets.js || echo Skipping asset copy"
+    "lint": "next lint"
   },
   "dependencies": {
     "@google-cloud/text-to-speech": "^6.2.0",

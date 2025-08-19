@@ -13,7 +13,6 @@ from sentence_transformers import SentenceTransformer, CrossEncoder
 from rank_bm25 import BM25Okapi
 from sklearn.feature_extraction.text import HashingVectorizer
 from datetime import datetime
-SUBSECTION_HEAD = re.compile(r'^(\s*[0-9]+\.\s+.*|^[A-Z]\.\s+.*|^\*\*\s*.*\s*\*\*\s*)')
 
 # --- ROBUST PATHING & SETUP ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -124,30 +123,11 @@ def analyze_collection(input_dir, output_path):
     candidate_indices = np.where(base_scores >= MODEL_PACK['thr'] / 5)[0]
     candidate_pages = [all_pages[i] for i in candidate_indices]
 
-    # Fallback: if no candidates after thresholding, pick top-k by base_scores
-    if len(candidate_pages) == 0:
-        print("No candidates found after thresholding — falling back to top-k by base score.")
-        top_k_fallback = 10
-        top_indices = np.argsort(base_scores)[-top_k_fallback:][::-1]
-    candidate_pages = [all_pages[i] for i in top_indices]
-    candidate_indices = top_indices
-
     print(f"Step 3: Re-ranking {len(candidate_pages)} candidates...")
     reranked_pages = []
     top_k = 10
     if len(candidate_pages) > 0:
         ce_scores = CE.predict([[query, p["text"][:4096]] for p in candidate_pages], show_progress_bar=False)
-        try:
-            ce_scores = CE.predict([[query, p["text"][:4096]] for p in candidate_pages], show_progress_bar=False)
-        except Exception as e:
-            print(f"Cross-encoder failed, falling back to base_scores for ranking: {e}")
-            # Use base_scores mapped to candidate_indices as fallback ranking scores
-            try:
-                ce_scores = [float(base_scores[int(i)]) for i in candidate_indices]
-            except Exception:
-                ce_scores = [0.0] * len(candidate_pages)
-
-        top_k = 10
         reranked_pages = sorted(zip(candidate_pages, ce_scores), key=lambda x: x[1], reverse=True)[:top_k]
     # Fallback: if no candidates survived, pick top_k by BM25 across all pages
     if len(reranked_pages) == 0:
@@ -180,67 +160,10 @@ def analyze_collection(input_dir, output_path):
         "metadata": metadata_out,
         "extracted_sections": final_sections,
         "subsection_analysis": subsection_items
-    
-    # --- Subsection extraction & scoring (match adobe_hackathon_round1B format) ---
-    subsection_analysis_list = []
-    for page_data, _score in reranked_pages:
-        text = page_data.get('text', '')
-        lines = text.splitlines()
-        if not lines:
-            continue
-
-        # identify subsection boundaries
-        subsections = []
-        current_start = 0
-        for i, line in enumerate(lines):
-            if SUBSECTION_HEAD.match(line) and i > 0:
-                sub_text = '\n'.join(lines[current_start:i]).strip()
-                if sub_text:
-                    subsections.append({"text": sub_text, "start_line": current_start + 1})
-                current_start = i
-
-        last_sub = '\n'.join(lines[current_start:]).strip()
-        if last_sub:
-            subsections.append({"text": last_sub, "start_line": current_start + 1})
-
-        if not subsections:
-            continue
-
-        # Score subsections with CrossEncoder (fallback to zeros on failure)
-        sub_texts = [s['text'][:4096] for s in subsections]
-        try:
-            ce_scores_sub = CE.predict([[query, st] for st in sub_texts], show_progress_bar=False)
-        except Exception:
-            ce_scores_sub = [0.0] * len(sub_texts)
-
-        for i, s in enumerate(subsections):
-            subsection_analysis_list.append({
-                "Document": page_data["doc"] + '.pdf',
-                "Page Number": page_data["page"],
-                "subsection_start_line": int(s.get('start_line', 1)),
-                "relevance_score_ce": float(ce_scores_sub[i]),
-                "Refined Text": s['text']
-            })
-
-    # sort subsections by score desc
-    subsection_analysis_list = sorted(subsection_analysis_list, key=lambda x: x['relevance_score_ce'], reverse=True)
-
-    # Produce output in the same shape as adobe_hackathon_round1B's run.py
-    # Per request: ignore any predefined persona/job inputs for now — these will be
-    # inferred by the LLM downstream. Keep metadata.input_documents and timestamp.
-    final_output = {
-        "metadata": {
-            "input_documents": meta.get("documents", []),
-            "persona": {},
-            "job_to_be_done": {},
-            "timestamp": time.strftime('%Y-%m-%d %H:%M:%S')
-        },
-        "extracted_sections": final_sections,
-        "subsection_analysis": subsection_analysis_list
     }
 
     with open(output_path, 'w', encoding='utf-8') as f:
-        json.dump(final_output, f, indent=2)
+        json.dump(output_data, f, indent=2)
 
     end_time = time.time()
     print(f"✅ Analysis complete in {end_time - start_time:.2f} seconds.")
