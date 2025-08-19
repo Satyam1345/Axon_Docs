@@ -1,4 +1,4 @@
-    // backend/routes/api.js
+// backend/routes/api.js
     const express = require('express');
     const router = express.Router();
     const multer = require('multer');
@@ -82,11 +82,50 @@
       }
 
       const collectionName = req.body.collectionName;
-      const personaData = { 
-        persona: { role: req.body.personaRole }, 
-        job_to_be_done: { task: req.body.jobTask } 
+      
+      // Debug: log incoming meta fields
+      try {
+        console.log('Upload meta:', {
+          collectionName: req.body.collectionName,
+          personaRole: req.body.personaRole,
+          jobTask: req.body.jobTask
+        });
+      } catch {}
+      
+      // Create proper challenge1b_input.json structure
+      const pdfsInDir = fs.readdirSync(pdfsDir).filter(f => f.toLowerCase().endsWith('.pdf'));
+      const documentsArray = pdfsInDir.map(filename => ({
+        filename: filename,
+        title: path.parse(filename).name
+      }));
+
+      const inputJsonData = {
+        challenge_info: {
+          challenge_id: "round_1b_001",
+          test_case_name: collectionName || "document_analysis",
+          description: req.body.jobTask || "Document analysis task"
+        },
+        documents: documentsArray,
+        persona: {
+          role: req.body.personaRole || "Analyst"
+        },
+        job_to_be_done: {
+          task: req.body.jobTask || "Analyze documents and extract insights"
+        }
       };
-      fs.writeFileSync(path.join(collectionPath, 'challenge1b_input.json'), JSON.stringify(personaData));
+
+      const inputJsonPath = path.join(collectionPath, 'challenge1b_input.json');
+      fs.writeFileSync(inputJsonPath, JSON.stringify(inputJsonData, null, 2));
+
+      // Also persist a root-level copy for UI/debugging (since collection folder is cleaned up later)
+      try {
+        const uploadsInputCopy = path.join(uploadsDir, 'challenge1b_input.json');
+        fs.writeFileSync(uploadsInputCopy, JSON.stringify(inputJsonData, null, 2));
+      } catch (e) {
+        console.warn('Warning: could not write uploads root input copy:', e.message || e);
+      }
+
+      console.log('Created challenge1b_input.json:', JSON.stringify(inputJsonData, null, 2));
 
       try {
         const pythonScriptPath = path.resolve(__dirname, '../../round_1b/run.py');
@@ -172,4 +211,3 @@
     });
 
     module.exports = router;
-    
