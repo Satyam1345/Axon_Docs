@@ -122,11 +122,11 @@ export default function PdfViewerPage() {
 										isAdding={isAdding}  // indicate processing state
 									/>
 					<div className="relative flex-grow h-full min-h-0 p-4 flex flex-col">
-						<div className="border border-red-700 bg-white flex-none" style={{ height: isBottomOpen ? '75%' : '100%' }}>
+						<div className="border border-red-700 bg-white flex-none" style={{ height: isBottomOpen ? '68%' : '93%' }}>
 							<PdfJsExpressViewer docUrl={docUrl} pageNumber={selectedPage} />
 						</div>
 												{isBottomOpen ? (
-												<div className="mt-4 h-[25%] flex flex-col min-h-0">
+												<div className="mt-2 h-[32%] flex flex-col min-h-0 bg-red-50/70 backdrop-blur-sm border border-red-300/70 rounded-md p-2 shadow-lg">
 														<div className="grid grid-cols-3 items-center mb-2 flex-none">
 																<div />
 																<h2 className="font-bold text-center">Highlighted Sections & Subsection Analysis</h2>
@@ -149,7 +149,7 @@ export default function PdfViewerPage() {
 											.sort((a, b) => (a.importance_rank || 0) - (b.importance_rank || 0))
 											.map((s) => (
 												<li key={`${s.document}-${s.page_number}-${s.importance_rank}`}>
-													<button className="w-full text-left p-2 rounded hover:bg-red-100 cursor-pointer" onClick={() => {
+													<button className="w-full text-left p-3 rounded-md border border-red-300/80 bg-red-50/90 backdrop-blur-sm shadow-md hover:shadow-lg hover:bg-red-100/90 transition cursor-pointer" onClick={() => {
 														setSelectedPage(Number(s.page_number) || 1);
 														if (s.document !== selectedFile) {
 															setSelectedFile(s.document);
@@ -175,9 +175,9 @@ export default function PdfViewerPage() {
 												<h3 className="font-semibold mb-2">Subsection Analysis{perDoc.length ? '' : ' (all documents)'} </h3>
 												<ul className="space-y-2">
 													{items.map((x, idx) => (
-														<li key={`sub-${idx}`} className="text-xs text-gray-700">
+														<li key={`sub-${idx}`} className="text-xs text-gray-700 p-3 rounded-md border border-red-300/80 bg-red-50/90 backdrop-blur-sm shadow-md">
 															<div className="text-gray-500">{x.document}{String(x.document).toLowerCase().endsWith('.pdf') ? '' : '.pdf'} • Page {x.page_number}</div>
-															<div className="line-clamp-3">{x.refined_text}</div>
+																<div className="mt-1 whitespace-pre-wrap break-words">{x.refined_text}</div>
 														</li>
 													))}
 												</ul>
@@ -196,7 +196,7 @@ export default function PdfViewerPage() {
 																										<div className="absolute left-4 right-4 bottom-4 h-8 flex items-center justify-center md:justify-between px-3 bg-red-50 border border-red-200 text-red-700 rounded cursor-pointer shadow"
 																												 onClick={() => setIsBottomOpen(true)}
 																												 aria-label="Show highlights and subsection analysis">
-																											<span className="text-xs font-medium">Show Highlights & Subsection Analysis</span>
+																											<span className="text-xs font-medium">Highlighted Section & Sub-Section Analysis</span>
 																										</div>
 																									)}
 					</div>
