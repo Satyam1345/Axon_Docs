@@ -211,4 +211,67 @@
       }
     });
 
+    // Related content search: given selected text, find similar/contradict/extend/problem snippets
+    router.post('/related', async (req, res) => {
+      try {
+        const { text, top_k } = req.body || {};
+        if (!text || typeof text !== 'string' || text.trim().length < 3) {
+          return res.status(400).json({ error: 'text is required' });
+        }
+        const pythonScriptPath = path.resolve(__dirname, '../../round_1b/search.py');
+        const pythonScriptDir = path.resolve(__dirname, '../../round_1b');
+
+        const resolved = resolvePythonExecutable();
+        if (!resolved) {
+          return res.status(500).json({
+            error: 'Python not found',
+            details: 'Install Python 3 and ensure it is on PATH, or set PYTHON_EXECUTABLE.'
+          });
+        }
+        const { cmd: pythonExecutable, argsPrefix } = resolved;
+
+        const args = [
+          ...argsPrefix,
+          pythonScriptPath,
+          '--query', text,
+          '--top_k', String(Math.max(3, Math.min(Number(top_k) || 10, 20)))
+        ];
+
+        const proc = spawn(pythonExecutable, args, { cwd: pythonScriptDir });
+        let out = '';
+        let err = '';
+        proc.stdout.on('data', (d) => { out += d.toString(); });
+        proc.stderr.on('data', (d) => { err += d.toString(); });
+        proc.on('error', (e) => {
+          return res.status(500).json({ error: 'Failed to start search', details: e && e.message ? e.message : String(e) });
+        });
+        proc.on('close', (code) => {
+          if (code !== 0) {
+            return res.status(500).json({ error: 'Search script failed', details: err });
+          }
+          let payload;
+          try { payload = JSON.parse(out); } catch (e) { payload = { results: [] }; }
+
+          // Lightweight relationship tagging heuristics
+          const rel_map = [];
+          const q = text.toLowerCase();
+          const contradiction_terms = ['contradict', 'oppose', 'inconsistent', 'fails', 'not work', "doesn't work", 'no improvement', 'worse'];
+          const extension_terms = ['extend', 'improve', 'enhance', 'build on', 'novel', 'we propose', 'we present'];
+          const problem_terms = ['limitation', 'problem', 'issue', 'challenge', 'risk', 'bias', 'drawback'];
+
+          for (const r of (payload.results || [])) {
+            const s = (r.snippet || '').toLowerCase();
+            let relation = 'similar';
+            if (contradiction_terms.some(t => s.includes(t))) relation = 'contradictory';
+            else if (extension_terms.some(t => s.includes(t))) relation = 'extends';
+            else if (problem_terms.some(t => s.includes(t))) relation = 'problems';
+            rel_map.push({ ...r, relation });
+          }
+          res.json({ query: text, results: rel_map });
+        });
+      } catch (e) {
+        res.status(500).json({ error: 'Internal error', details: e && e.message ? e.message : String(e) });
+      }
+    });
+
     module.exports = router;

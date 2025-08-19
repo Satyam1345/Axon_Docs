@@ -1,10 +1,11 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 
 import Header from "../components/Header.jsx";
 import Sidebar from "../components/Sidebar.jsx";
 import { uploadDocumentCollection, getLatestOutput } from '../lib/api';
+import { getRelated } from '../lib/api';
 import PdfJsExpressViewer from '../components/PDFViewer';
 import PodcastSidebar from "../components/PodcastSidebar";
 import InsightsSidebar from "../components/InsightsSidebar";
@@ -25,6 +26,77 @@ export default function PdfViewerPage() {
 		const [selectedFile, setSelectedFile] = useState(file);
 	const [selectedPage, setSelectedPage] = useState(pageParam);
 	const [isBottomOpen, setIsBottomOpen] = useState(true);
+	const [related, setRelated] = useState(null);
+	const [lastSelectedText, setLastSelectedText] = useState('');
+	const [showCopy, setShowCopy] = useState(false);
+	const [queryText, setQueryText] = useState('');
+	const [relatedLoading, setRelatedLoading] = useState(false);
+
+	// Listen for related results from PDF selection
+	useEffect(() => {
+		function onRelated(e) {
+			setRelated(e.detail);
+		}
+		window.addEventListener('axon:relatedResults', onRelated);
+		function onSelected(e) {
+			const text = (e && e.detail && e.detail.text) || '';
+			setLastSelectedText(text);
+			setShowCopy(!!text);
+			if (text) setQueryText(text);
+		}
+		window.addEventListener('axon:selectedText', onSelected);
+		return () => window.removeEventListener('axon:relatedResults', onRelated);
+	}, []);
+
+	const runRelatedSearch = async () => {
+		const text = String(queryText || '').trim();
+		if (!text || text.length < 3) return;
+		setRelatedLoading(true);
+		try {
+			const resp = await getRelated(text, 20);
+			setRelated(resp || { results: [] });
+		} catch (e) {
+			console.warn('Related search failed:', e);
+			setRelated({ results: [] });
+		} finally {
+			setRelatedLoading(false);
+		}
+	};
+
+	const handleCopySelected = async () => {
+		const text = String(lastSelectedText || '').trim();
+		if (!text) return;
+		try {
+			if (navigator.clipboard && navigator.clipboard.writeText) {
+				await navigator.clipboard.writeText(text);
+			} else {
+				// Fallback to hidden textarea
+				const ta = document.createElement('textarea');
+				ta.value = text;
+				ta.style.position = 'fixed';
+				ta.style.left = '-9999px';
+				document.body.appendChild(ta);
+				ta.focus();
+				ta.select();
+				document.execCommand('copy');
+				document.body.removeChild(ta);
+			}
+		} catch (e) {
+			console.warn('Top-level copy failed:', e);
+		} finally {
+			setShowCopy(false);
+		}
+	};
+
+	const groupedRelated = useMemo(() => {
+		const out = { similar: [], contradictory: [], extends: [], problems: [] };
+		if (!related || !Array.isArray(related.results)) return out;
+		for (const r of related.results) {
+			const key = r.relation || 'similar';
+			(out[key] || out.similar).push(r);
+		}
+		return out;
+	}, [related]);
 
 	useEffect(() => {
 		// Try to get analysisData from sessionStorage
@@ -125,6 +197,13 @@ export default function PdfViewerPage() {
 					<div className="relative flex-grow h-full min-h-0 p-4 flex flex-col">
 						<div className="border border-red-700 bg-white flex-none" style={{ height: isBottomOpen ? '68%' : '93%' }}>
 							<PdfJsExpressViewer docUrl={docUrl} pageNumber={selectedPage} />
+							{showCopy && (
+								<div className="absolute top-6 right-6 z-20 flex items-center gap-2 bg-red-700 text-white px-3 py-1.5 rounded shadow">
+									<span className="text-xs max-w-[40vw] truncate" title={lastSelectedText}>Copy selected</span>
+									<button onClick={handleCopySelected} className="text-xs font-semibold underline">Copy</button>
+									<button onClick={() => setShowCopy(false)} className="text-xs">×</button>
+								</div>
+							)}
 						</div>
 												{isBottomOpen ? (
 												<div className="mt-2 h-[32%] flex flex-col min-h-0 bg-red-50/70 backdrop-blur-sm border border-red-300/70 rounded-md p-2 shadow-lg">
@@ -141,7 +220,7 @@ export default function PdfViewerPage() {
 																	</button>
 																</div>
 														</div>
-														<div className="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 min-h-0">
+														<div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 min-h-0">
 								{/* Left column: Highlighted Sections */}
 																<div className="h-full min-h-0 overflow-y-auto">
 									<h2 className="font-bold mb-2">Highlighted Sections</h2>
@@ -166,8 +245,8 @@ export default function PdfViewerPage() {
 											))}
 									</ul>
 								</div>
-								{/* Right column: Subsection Analysis */}
-																<div className="h-full min-h-0 overflow-y-auto">
+								{/* Middle column: Subsection Analysis */}
+														<div className="h-full min-h-0 overflow-y-auto">
 									{(() => {
 										const allSubs = Array.isArray(analysisData?.subsection_analysis) ? analysisData.subsection_analysis : [];
 										const currentDoc = normalizeName(selectedFile || file);
@@ -192,6 +271,68 @@ export default function PdfViewerPage() {
 											</>
 										);
 									})()}
+								</div>
+								{/* Right column: Related Findings */}
+								<div className="h-full min-h-0 overflow-y-auto">
+									<h3 className="font-semibold mb-2">Related Findings</h3>
+								<div className="mb-3 p-2 border border-red-300/80 bg-white rounded">
+									<label className="block text-xs text-gray-600 mb-1">Paste text and click Search</label>
+									<textarea
+										value={queryText}
+										onChange={(e) => setQueryText(e.target.value)}
+										rows={3}
+										className="w-full text-xs p-2 border border-red-200 rounded focus:outline-none focus:ring-1 focus:ring-red-400"
+										placeholder="Paste the paragraph or query here..."
+									/>
+									<div className="mt-2 flex items-center gap-2">
+										<button
+											onClick={runRelatedSearch}
+											disabled={relatedLoading || !queryText.trim()}
+											className={`px-3 py-1.5 text-xs rounded border ${relatedLoading || !queryText.trim() ? 'bg-red-200 text-white border-red-200' : 'bg-red-600 text-white border-red-600 hover:bg-red-700'}`}
+										>
+											{relatedLoading ? 'Searching…' : 'Search'}
+										</button>
+										{!!related && Array.isArray(related.results) && (
+											<span className="text-[11px] text-gray-600">{related.results.length} results</span>
+										)}
+									</div>
+								</div>
+									{related && related.results && related.results.length ? (
+										<div className="space-y-4 text-xs">
+											{['similar','contradictory','extends','problems']
+												.filter((k) => (groupedRelated[k] || []).length > 0)
+												.map((k) => (
+													<div key={k}>
+														<div className="text-red-700 font-medium capitalize">{k}</div>
+														<ul className="space-y-2 mt-1">
+															{(groupedRelated[k] || []).slice(0,3).map((r, idx) => (
+																<li key={k+idx}>
+																	<button
+																		className="w-full text-left p-3 rounded-md border border-red-300/80 bg-red-50/90 backdrop-blur-sm shadow-md hover:shadow-lg hover:bg-red-100/90 transition cursor-pointer"
+																		onClick={() => {
+																			const targetPage = Number(r.page_number) || 1;
+																			setSelectedPage(targetPage);
+																			if (r.document && r.document !== selectedFile) {
+																				setSelectedFile(r.document);
+																				router.replace(`/pdfviewer?file=${encodeURIComponent(r.document)}&page=${targetPage}`);
+																			}
+																		}}
+																	>
+																		<div className="text-gray-500">{r.document}{String(r.document).toLowerCase().endsWith('.pdf') ? '' : '.pdf'} • Page {r.page_number}</div>
+																		<div className="mt-1 whitespace-pre-wrap break-words">{r.snippet}</div>
+																	</button>
+																</li>
+															))}
+														</ul>
+													</div>
+												))}
+											{['similar','contradictory','extends','problems'].every((k) => (groupedRelated[k] || []).length === 0) && (
+												<div className="text-gray-500">No related items found.</div>
+											)}
+										</div>
+									) : (
+										<div className="text-gray-500 text-xs">Paste text above and click Search to see related findings across your papers.</div>
+									)}
 								</div>
 																					</div>
 																			</div>

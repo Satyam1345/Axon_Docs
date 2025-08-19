@@ -32,3 +32,9 @@ export async function getLatestOutput() {
   const res = await apiClient.get('/api/output');
   return res.data;
 }
+
+// Related content based on selected text
+export async function getRelated(text, topK = 8) {
+  const res = await apiClient.post('/api/related', { text, top_k: topK });
+  return res.data;
+}

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { getRelated } from "../lib/api";
 import { setApis as setViewerApis, setNumPages as setViewerNumPages, gotoPage as viewerGotoPage, hasViewer as viewerHas } from "../lib/pdfViewerApi";
 
 // Replace with your Adobe PDF Embed API Client ID
@@ -13,6 +14,31 @@ function AdobePDFViewer({ docUrl, pageNumber = 1 }) {
 
     // Remove any previous viewer instance
     viewerRef.current.innerHTML = "";
+
+    // Ensure any iframe created by the Adobe viewer has clipboard permissions
+    const ensureIframePermissions = () => {
+      const root = viewerRef.current;
+      if (!root) return;
+      const iframes = root.querySelectorAll('iframe');
+      if (!iframes || !iframes.length) return;
+      iframes.forEach((ifr) => {
+        try {
+          const allow = ifr.getAttribute('allow') || '';
+          const needed = ['clipboard-read', 'clipboard-write'];
+          const missing = needed.filter((t) => !allow.includes(t));
+          if (missing.length) {
+            const updated = (allow ? allow + '; ' : '') + missing.join('; ');
+            ifr.setAttribute('allow', updated);
+          }
+        } catch (_) {}
+      });
+    };
+
+    // Observe mutations because the iframe is created asynchronously by the SDK
+    const mo = new MutationObserver(() => ensureIframePermissions());
+    try {
+      mo.observe(viewerRef.current, { childList: true, subtree: true });
+    } catch (_) {}
 
 
     // Dynamically load the Adobe Embed API script if not already loaded
@@ -49,7 +75,7 @@ function AdobePDFViewer({ docUrl, pageNumber = 1 }) {
       });
     }
 
-    function renderPDF() {
+  function renderPDF() {
       if (!window.AdobeDC) {
         console.log("[Adobe PDF Embed] AdobeDC not available yet.");
         return;
@@ -60,7 +86,7 @@ function AdobePDFViewer({ docUrl, pageNumber = 1 }) {
         clientId: ADOBE_CLIENT_ID,
         divId: "adobe-dc-view",
       });
-      const previewPromise = adobeDCView.previewFile({
+  const previewPromise = adobeDCView.previewFile({
         content: { location: { url: docUrl } },
         metaData: { fileName },
       }, {
@@ -71,10 +97,13 @@ function AdobePDFViewer({ docUrl, pageNumber = 1 }) {
         showDownloadPDF: true,
         showPrintPDF: true,
       });
+  // Try to set iframe permissions shortly after rendering kicks off
+  setTimeout(ensureIframePermissions, 250);
       if (previewPromise && typeof previewPromise.then === "function") {
         previewPromise.then(
           (viewer) => {
             console.log("[Adobe PDF Embed] previewFile resolved (viewer):", viewer);
+    ensureIframePermissions();
             // Navigate to requested page once APIs are available
             const getApisPromise = (viewer && typeof viewer.getAPIs === 'function')
               ? viewer.getAPIs()
@@ -104,9 +133,27 @@ function AdobePDFViewer({ docUrl, pageNumber = 1 }) {
             // Register event callbacks for user interactions
             adobeDCView.registerCallback(
               AdobeDC.View.Enum.CallbackType.TEXT_SELECTION,
-              function(event) {
-                console.log("[Adobe PDF Embed] Text selected:", event);
-                // TODO: Trigger your semantic search/insights flow with event.text
+              async function(event) {
+                try {
+                  const selected = (event && event.data && event.data.selectedText) || (event && event.selectedText) || '';
+                  const text = String(selected || '').trim();
+                  if (!text || text.length < 3) return;
+                  console.log("[Adobe PDF Embed] Text selected:", text);
+                  // Notify host app about selected text to enable top-level clipboard actions
+                  try {
+                    const selEvt = new CustomEvent('axon:selectedText', { detail: { text } });
+                    window.dispatchEvent(selEvt);
+                  } catch (_) {}
+                  // Call backend to get related snippets
+                  const related = await getRelated(text, 8).catch(() => null);
+                  if (related && related.results) {
+                    // Emit a custom event the page can listen for
+                    const evt = new CustomEvent('axon:relatedResults', { detail: related });
+                    window.dispatchEvent(evt);
+                  }
+                } catch (e) {
+                  console.warn('Selection related fetch failed:', e);
+                }
               },
               {}
             );
@@ -133,6 +180,7 @@ function AdobePDFViewer({ docUrl, pageNumber = 1 }) {
     // Clean up on unmount
     return () => {
       if (viewerRef.current) viewerRef.current.innerHTML = "";
+      try { mo.disconnect(); } catch (_) {}
     };
   }, [docUrl]);
 
