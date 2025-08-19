@@ -6,37 +6,60 @@ import path from 'path';
 // Use pdfjs-dist for reliable PDF text extraction in Node
 
 /**
- * Generates a prompt for an LLM to create a podcast script summarizing multiple documents.
+ * Generates a prompt for an LLM to create a two-speaker overview podcast script.
  * @param {string} combinedText - The combined text from all documents.
- * @param {string} persona - The persona of the speaker.
+ * @param {string} persona - The persona of the questioner.
  * @param {string} jobTask - The user's goal.
  * @returns {string} The fully formed prompt for the LLM.
  */
 function createOverviewPodcastScriptPrompt(combinedText, persona = 'an insightful analyst', jobTask = 'get a high-level summary of all my documents') {
   return `
-You are a world-class podcast scriptwriter specializing in synthesis. Your task is to create a compelling and informative podcast script that provides a high-level overview of the key themes, connections, and main points from the collection of texts provided below.
+You are a world-class podcast scriptwriter specializing in document synthesis. Your task is to create a compelling two-speaker podcast script that provides a comprehensive overview of multiple documents through natural dialogue.
 
 **User Context:**
-*   **Persona:** The user identifies as **${persona}**.
-*   **Goal:** The user wants to **${jobTask}**.
+*   **Persona:** The questioner identifies as **${persona}**.
+*   **Goal:** The questioner wants to **${jobTask}**.
 
 **Instructions:**
 
-1.  **Role:** Adopt the persona of an expert analyst providing a strategic overview. Your tone should be authoritative and clear.
-2.  **Format:** Structure the output as a podcast script with an intro, main body (covering key themes), and an outro.
-3.  **Content:**
-    *   **Intro:** Start with a hook that introduces the purpose of the overview.
-    *   **Main Body:** Do not just summarize each document one by one. Instead, synthesize the information across all documents. Identify 2-4 major recurring themes, connecting ideas, or contrasting viewpoints. Discuss each theme, drawing examples from the source text.
-    *   **Outro:** Provide a concise summary of the main takeaways from the entire collection and a concluding thought.
-4.  **Length:** The script should result in a podcast that is approximately **2 to 5 minutes** long.
-5.  **Style:** Write in a clear, professional, and conversational style.
+1.  **Format:** Create a dialogue between two speakers:
+    *   **SPEAKER 1 (Questioner):** Someone with the user's persona who asks strategic questions about the document collection
+    *   **SPEAKER 2 (Expert Analyst):** A knowledgeable expert who synthesizes information across all documents
+
+2.  **Structure:** 
+    *   Start with SPEAKER 1 introducing the purpose and asking about overall themes
+    *   Continue with 5-7 strategic questions covering key areas:
+        - Main themes across documents
+        - Connections and relationships between documents
+        - Key insights and patterns
+        - Contradictions or different perspectives
+        - Practical implications
+    *   End with SPEAKER 1 asking for final takeaways
+
+3.  **Content Guidelines:**
+    *   DO NOT summarize documents individually
+    *   Focus on synthesis across all documents
+    *   Identify recurring themes, patterns, and connections
+    *   Highlight contrasts and complementary information
+    *   Draw strategic insights from the complete collection
+    *   Questions should be thoughtful and analysis-focused
+
+4.  **Format Requirements:**
+    *   Use "SPEAKER 1:" and "SPEAKER 2:" to clearly distinguish speakers
+    *   Write only spoken dialogue - no descriptions, music cues, or production notes
+    *   Keep responses comprehensive but conversational (3-4 sentences per answer)
+    *   Maintain natural flow between questions and answers
+
+5.  **Length:** The script should result in a 4-6 minute strategic conversation.
+
+6.  **Style:** Professional analytical discussion, accessible language, strategic focus.
 
 **Source Texts to Synthesize:**
 ---
 ${combinedText}
 ---
 
-Please generate the overview podcast script now.
+Generate the two-speaker overview podcast script now, focusing on strategic synthesis and analysis across all documents.
   `;
 }
 

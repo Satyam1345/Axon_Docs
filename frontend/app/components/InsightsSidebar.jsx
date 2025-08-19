@@ -12,7 +12,7 @@ const InsightDisplay = ({ insight, originalText }) => {
     <div className="p-4 border border-red-200 rounded-lg bg-white shadow-sm">
       <div className="mb-3">
         <p className="text-xs text-red-600/70 font-medium truncate" title={originalText}>
-          📄 Source: {originalText}
+           Source: {originalText}
         </p>
       </div>
       <div className="prose prose-sm max-w-none prose-headings:text-red-800 prose-headings:font-bold prose-headings:mt-4 prose-headings:mb-2 prose-p:my-2 prose-p:text-gray-700 prose-strong:text-gray-900 prose-a:text-red-700 prose-ul:my-2 prose-li:my-1">
@@ -183,7 +183,7 @@ export default function InsightsSidebar({ isOpen, onClose }) {
             )}
           </button>
           <div className="text-xs text-red-600/70 italic mt-2 text-center">
-            📚 Analyzes all uploaded documents together
+             Analyzes all uploaded documents together
           </div>
         </div>
       </div>
