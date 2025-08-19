@@ -4,9 +4,10 @@ import { useSearchParams, useRouter } from 'next/navigation';
 
 import Header from "../components/Header.jsx";
 import Sidebar from "../components/Sidebar.jsx";
-import { uploadDocumentCollection } from '../lib/api';
+import { uploadDocumentCollection, getLatestOutput } from '../lib/api';
 import PdfJsExpressViewer from '../components/PDFViewer';
-import PodcastSidebar from '../components/PodcastSidebar';
+import PodcastSidebar from "../components/PodcastSidebar";
+import InsightsSidebar from "../components/InsightsSidebar";
 import { Loader2 } from 'lucide-react';
 import { getHistory } from '../lib/api';
 
@@ -19,18 +20,31 @@ export default function PdfViewerPage() {
 			const [isAdding, setIsAdding] = useState(false);
 		const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 		const [isPodcastSidebarOpen, setIsPodcastSidebarOpen] = useState(false);
+		const [isInsightsSidebarOpen, setIsInsightsSidebarOpen] = useState(false);
 		const [selectedFile, setSelectedFile] = useState(file);
+		const [selectedPage, setSelectedPage] = useState(1);
 
 	useEffect(() => {
 		// Try to get analysisData from sessionStorage
 		const storedData = sessionStorage.getItem('analysisData');
 					if (storedData) {
 						const data = JSON.parse(storedData);
+						const docs = (data && data.metadata && data.metadata.input_documents) || data.documents || [];
 						setAnalysisData(data);
-						setDocuments(data.documents || []);
+						setDocuments(docs);
 						sessionStorage.removeItem('analysisData');
 						return;
 					}
+
+		// Fallback: fetch latest output from backend
+		getLatestOutput()
+			.then((data) => {
+				if (!data) return;
+				const docs = (data && data.metadata && data.metadata.input_documents) || [];
+				setAnalysisData(data);
+				setDocuments(docs);
+			})
+			.catch(() => {});
 	}, []);
 
 	if (!file) return <div className="text-red-500">No PDF specified.</div>;
@@ -74,6 +88,7 @@ export default function PdfViewerPage() {
 					isSidebarOpen={isSidebarOpen} 
 					toggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
 					onTogglePodcast={() => setIsPodcastSidebarOpen(!isPodcastSidebarOpen)}
+					onToggleInsights={() => setIsInsightsSidebarOpen(!isInsightsSidebarOpen)}
 				/>
 				<main className="flex flex-grow overflow-hidden">
 									<Sidebar
@@ -85,13 +100,53 @@ export default function PdfViewerPage() {
 										isAdding={isAdding}  // indicate processing state
 									/>
 					<div className="flex-grow h-full p-4">
-						<div className="border border-red-700 bg-white h-full">
-							<PdfJsExpressViewer docUrl={docUrl} />
+						<div className="border border-red-700 bg-white" style={{ height: '75%' }}>
+							<PdfJsExpressViewer docUrl={docUrl} pageNumber={selectedPage} />
+						</div>
+						<div className="mt-4 overflow-y-auto" style={{ height: '25%' }}>
+							<h2 className="font-bold mb-2">Highlighted Sections</h2>
+							<ul className="space-y-2">
+								{((analysisData && (analysisData.extracted_sections || analysisData.highlightedSections)) || [])
+									.sort((a, b) => (a.importance_rank || 0) - (b.importance_rank || 0))
+									.map((s) => (
+										<li key={`${s.document}-${s.page_number}-${s.importance_rank}`}>
+											<button className="w-full text-left p-2 rounded hover:bg-red-100" onClick={() => {
+												setSelectedPage(Number(s.page_number) || 1);
+												if (s.document !== selectedFile) {
+													setSelectedFile(s.document);
+													router.replace(`/pdfviewer?file=${encodeURIComponent(s.document)}`);
+												}
+											}}>
+												<div className="text-xs text-gray-500">Rank #{s.importance_rank} • Page {s.page_number}</div>
+												<div className="text-sm font-medium line-clamp-2">{s.section_title}</div>
+											</button>
+										</li>
+									))}
+							</ul>
+							{analysisData && analysisData.subsection_analysis && (
+								<>
+									<h3 className="font-semibold mt-4 mb-2">Subsection Analysis</h3>
+									<ul className="space-y-2">
+										{analysisData.subsection_analysis
+												.filter(x => x.document === file)
+												.map((x, idx) => (
+													<li key={`sub-${idx}`} className="text-xs text-gray-700">
+														<div className="text-gray-500">Page {x.page_number}</div>
+														<div className="line-clamp-3">{x.refined_text}</div>
+													</li>
+												))}
+									</ul>
+								</>
+							)}
 						</div>
 					</div>
 					<PodcastSidebar 
 						isOpen={isPodcastSidebarOpen} 
 						onClose={() => setIsPodcastSidebarOpen(false)} 
+					/>
+					<InsightsSidebar 
+						isOpen={isInsightsSidebarOpen} 
+						onClose={() => setIsInsightsSidebarOpen(false)} 
 					/>
 				</main>
 			</div>

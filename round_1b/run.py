@@ -12,6 +12,7 @@ import fitz
 from sentence_transformers import SentenceTransformer, CrossEncoder
 from rank_bm25 import BM25Okapi
 from sklearn.feature_extraction.text import HashingVectorizer
+from datetime import datetime
 
 # --- ROBUST PATHING & SETUP ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -73,17 +74,36 @@ def analyze_collection(input_dir, output_path):
         sys.exit(1)
 
     meta = json.load(open(meta_path))
-    query = f'{meta["persona"]["role"]} {meta["job_to_be_done"]["task"]}'
+    # Normalize persona and job fields from possible nested structure
+    persona_value = None
+    job_value = None
+    if isinstance(meta.get("persona"), dict):
+        persona_value = meta.get("persona", {}).get("role")
+    else:
+        persona_value = meta.get("persona")
+
+    if isinstance(meta.get("job_to_be_done"), dict):
+        job_value = meta.get("job_to_be_done", {}).get("task")
+    else:
+        job_value = meta.get("job_to_be_done")
+
+    persona_value = persona_value or ""
+    job_value = job_value or ""
+    query = f"{persona_value} {job_value}".strip()
 
     pdf_files = list(pdf_dir.glob('*.pdf'))
     
-    # --- THE FIX: Add the document list to the metadata ---
-    # This ensures the 'documents' array is always present in the output.
-    meta["documents"] = [f.name for f in pdf_files]
+    # Construct output metadata in the expected schema
+    metadata_out = {
+        "input_documents": [f.name for f in pdf_files],
+        "persona": persona_value,
+        "job_to_be_done": job_value,
+        "processing_timestamp": datetime.utcnow().isoformat()
+    }
 
     if not pdf_files:
         print(f"Warning: No PDF files found in {pdf_dir}.")
-        output_data = {"metadata": meta, "extracted_sections": [], "subsection_analysis": []}
+        output_data = {"metadata": metadata_out, "extracted_sections": [], "subsection_analysis": []}
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(output_data, f, indent=2)
         return
@@ -93,7 +113,7 @@ def analyze_collection(input_dir, output_path):
     print(f"Step 2: Analyzing {len(all_pages)} pages...")
     if not all_pages:
         print("Warning: No pages extracted from PDFs. Skipping analysis.")
-        output_data = {"metadata": meta, "extracted_sections": [], "subsection_analysis": []}
+        output_data = {"metadata": metadata_out, "extracted_sections": [], "subsection_analysis": []}
         with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(output_data, f, indent=2)
         return
@@ -105,26 +125,41 @@ def analyze_collection(input_dir, output_path):
 
     print(f"Step 3: Re-ranking {len(candidate_pages)} candidates...")
     reranked_pages = []
+    top_k = 10
     if len(candidate_pages) > 0:
         ce_scores = CE.predict([[query, p["text"][:4096]] for p in candidate_pages], show_progress_bar=False)
-        top_k = 10
         reranked_pages = sorted(zip(candidate_pages, ce_scores), key=lambda x: x[1], reverse=True)[:top_k]
+    # Fallback: if no candidates survived, pick top_k by BM25 across all pages
+    if len(reranked_pages) == 0:
+        print("No candidates after threshold; using BM25 fallback.")
+        all_bm25_scores = bm25.get_scores(query.split())
+        # Pair each page with its score and sort descending
+        scored_pages = list(zip(all_pages, all_bm25_scores))
+        scored_pages.sort(key=lambda x: x[1], reverse=True)
+        reranked_pages = scored_pages[:top_k]
 
     final_sections = []
+    subsection_items = []
     for rank, (page_data, score) in enumerate(reranked_pages, 1):
         final_sections.append({
             "document": page_data["doc"] + '.pdf',
-            "page_number": page_data["page"],
             "section_title": page_data["text"].splitlines()[0][:120],
-            "importance_rank": rank
+            "importance_rank": rank,
+            "page_number": page_data["page"]
         })
-        
+        refined_text = page_data["text"].strip()
+        if len(refined_text) > 2000:
+            refined_text = refined_text[:2000].rstrip() + "..."
+        subsection_items.append({
+            "document": page_data["doc"] + '.pdf',
+            "refined_text": refined_text,
+            "page_number": page_data["page"]
+        })
+
     output_data = {
-        "collectionName": meta.get("collectionName", "Untitled"),
-        "documents": meta["documents"],
-        "keyInsights": [], # Placeholder
-        "highlightedSections": final_sections,
-        "relatedSections": [] # Placeholder
+        "metadata": metadata_out,
+        "extracted_sections": final_sections,
+        "subsection_analysis": subsection_items
     }
 
     with open(output_path, 'w', encoding='utf-8') as f:
