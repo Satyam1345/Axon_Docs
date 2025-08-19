@@ -1,5 +1,5 @@
 "use client"
-import { PanelLeftClose, PanelLeftOpen, LogOut, Mic, Brain, ChevronDown, ChevronUp } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, LogOut, Mic, Brain, PanelBottom, PanelBottomClose } from 'lucide-react';
 
 function Header({ isSidebarOpen, toggleSidebar, onLogout, onTogglePodcast, onToggleInsights, onToggleBottom, isBottomOpen }) {
   return (
@@ -12,7 +12,7 @@ function Header({ isSidebarOpen, toggleSidebar, onLogout, onTogglePodcast, onTog
       </div>
       <div className="flex items-center gap-4">
         <button onClick={onToggleBottom} className="p-2 rounded-md hover:bg-red-100" aria-label="Toggle highlights panel">
-          {isBottomOpen ? <ChevronDown size={20} className="text-red-700" /> : <ChevronUp size={20} className="text-red-700" />}
+          {isBottomOpen ? <PanelBottomClose size={20} className="text-red-700" /> : <PanelBottom size={20} className="text-red-700" />}
         </button>
         <button onClick={onTogglePodcast} className="p-2 rounded-md hover:bg-red-100">
           <Mic size={20} className="text-red-700" />
