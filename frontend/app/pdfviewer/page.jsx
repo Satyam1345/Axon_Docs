@@ -48,7 +48,14 @@ export default function PdfViewerPage() {
 	}, []);
 
 	if (!file) return <div className="text-red-500">No PDF specified.</div>;
-	const docUrl = `/pdfs/${encodeURIComponent(file)}`;
+		const docUrl = `/pdfs/${encodeURIComponent(file)}`;
+
+		// Normalize helper: decode, lowercase, trim, strip optional .pdf suffix
+		const normalizeName = (name) => {
+			if (!name) return "";
+			const decoded = decodeURIComponent(String(name)).trim().toLowerCase();
+			return decoded.endsWith('.pdf') ? decoded.slice(0, -4) : decoded;
+		};
 
 		// Handler to switch PDFs by updating the query param
 			const handlePdfSelect = (pdfName) => {
@@ -123,21 +130,25 @@ export default function PdfViewerPage() {
 										</li>
 									))}
 							</ul>
-							{analysisData && analysisData.subsection_analysis && (
-								<>
-									<h3 className="font-semibold mt-4 mb-2">Subsection Analysis</h3>
-									<ul className="space-y-2">
-										{analysisData.subsection_analysis
-												.filter(x => x.document === file)
-												.map((x, idx) => (
-													<li key={`sub-${idx}`} className="text-xs text-gray-700">
-														<div className="text-gray-500">Page {x.page_number}</div>
-														<div className="line-clamp-3">{x.refined_text}</div>
-													</li>
-												))}
-									</ul>
-								</>
-							)}
+											{(() => {
+												const allSubs = Array.isArray(analysisData?.subsection_analysis) ? analysisData.subsection_analysis : [];
+												const currentDoc = normalizeName(selectedFile || file);
+												const perDoc = allSubs.filter((x) => normalizeName(x.document) === currentDoc);
+												const items = (perDoc.length ? perDoc : allSubs).slice(0, 100); // cap to avoid heavy DOM
+                return items.length ? (
+                  <>
+														<h3 className="font-semibold mt-4 mb-2">Subsection Analysis{perDoc.length ? '' : ' (all documents)'} </h3>
+                    <ul className="space-y-2">
+                      {items.map((x, idx) => (
+                        <li key={`sub-${idx}`} className="text-xs text-gray-700">
+																	<div className="text-gray-500">{x.document}{String(x.document).toLowerCase().endsWith('.pdf') ? '' : '.pdf'} • Page {x.page_number}</div>
+                          <div className="line-clamp-3">{x.refined_text}</div>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null;
+              })()}
 						</div>
 					</div>
 					<PodcastSidebar 
