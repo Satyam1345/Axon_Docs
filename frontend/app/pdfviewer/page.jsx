@@ -15,6 +15,7 @@ export default function PdfViewerPage() {
 	const searchParams = useSearchParams();
 	const router = useRouter();
 	const file = searchParams.get('file');
+	const pageParam = Number(searchParams.get('page')) || 1;
 			const [analysisData, setAnalysisData] = useState(null);
 			const [documents, setDocuments] = useState([]);
 			const [isAdding, setIsAdding] = useState(false);
@@ -22,7 +23,7 @@ export default function PdfViewerPage() {
 		const [isPodcastSidebarOpen, setIsPodcastSidebarOpen] = useState(false);
 		const [isInsightsSidebarOpen, setIsInsightsSidebarOpen] = useState(false);
 		const [selectedFile, setSelectedFile] = useState(file);
-		const [selectedPage, setSelectedPage] = useState(1);
+	const [selectedPage, setSelectedPage] = useState(pageParam);
 	const [isBottomOpen, setIsBottomOpen] = useState(true);
 
 	useEffect(() => {
@@ -150,10 +151,12 @@ export default function PdfViewerPage() {
 											.map((s) => (
 												<li key={`${s.document}-${s.page_number}-${s.importance_rank}`}>
 													<button className="w-full text-left p-3 rounded-md border border-red-300/80 bg-red-50/90 backdrop-blur-sm shadow-md hover:shadow-lg hover:bg-red-100/90 transition cursor-pointer" onClick={() => {
-														setSelectedPage(Number(s.page_number) || 1);
+														const targetPage = Number(s.page_number) || 1;
+														setSelectedPage(targetPage);
 														if (s.document !== selectedFile) {
 															setSelectedFile(s.document);
-															router.replace(`/pdfviewer?file=${encodeURIComponent(s.document)}`);
+															// Preserve page in URL so the viewer effect can navigate when ready
+															router.replace(`/pdfviewer?file=${encodeURIComponent(s.document)}&page=${targetPage}`);
 														}
 													}}>
 														<div className="text-xs text-gray-500">Rank #{s.importance_rank} • {s.document}{String(s.document).toLowerCase().endsWith('.pdf') ? '' : '.pdf'} • Page {s.page_number}</div>

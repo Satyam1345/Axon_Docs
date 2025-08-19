@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { setApis as setViewerApis, setNumPages as setViewerNumPages, gotoPage as viewerGotoPage, hasViewer as viewerHas } from "../lib/pdfViewerApi";
 
 // Replace with your Adobe PDF Embed API Client ID
 const ADOBE_CLIENT_ID = process.env.NEXT_PUBLIC_ADOBE_EMBED_CLIENT_ID || "<YOUR_CLIENT_ID_HERE>";
@@ -72,11 +73,27 @@ function AdobePDFViewer({ docUrl, pageNumber = 1 }) {
       });
       if (previewPromise && typeof previewPromise.then === "function") {
         previewPromise.then(
-          (res) => {
-            console.log("[Adobe PDF Embed] previewFile resolved:", res);
+          (viewer) => {
+            console.log("[Adobe PDF Embed] previewFile resolved (viewer):", viewer);
             // Navigate to requested page once APIs are available
-            if (typeof adobeDCView.getAPIs === 'function') {
-              adobeDCView.getAPIs().then((apis) => {
+            const getApisPromise = (viewer && typeof viewer.getAPIs === 'function')
+              ? viewer.getAPIs()
+              : (typeof adobeDCView.getAPIs === 'function' ? adobeDCView.getAPIs() : Promise.reject(new Error('getAPIs unavailable')));
+            getApisPromise.then((apis) => {
+                // Expose APIs to shared store for programmatic navigation
+                try {
+                  setViewerApis(apis);
+                  // Fetch and store total pages for bounds checking
+                  if (typeof apis.getPDFMetadata === 'function') {
+                    apis.getPDFMetadata()
+                      .then(meta => {
+                        if (meta && typeof meta.numPages === 'number') {
+                          setViewerNumPages(meta.numPages);
+                        }
+                      })
+                      .catch(() => {});
+                  }
+                } catch (_) {}
                 try {
                   const targetPage = Number(pageNumber) > 0 ? Number(pageNumber) : 1;
                   apis.gotoLocation(targetPage);
@@ -84,7 +101,6 @@ function AdobePDFViewer({ docUrl, pageNumber = 1 }) {
                   console.warn("[Adobe PDF Embed] Failed to navigate to page:", e);
                 }
               }).catch(() => {});
-            }
             // Register event callbacks for user interactions
             adobeDCView.registerCallback(
               AdobeDC.View.Enum.CallbackType.TEXT_SELECTION,
@@ -119,6 +135,27 @@ function AdobePDFViewer({ docUrl, pageNumber = 1 }) {
       if (viewerRef.current) viewerRef.current.innerHTML = "";
     };
   }, [docUrl]);
+
+  // Respond to external page changes without reloading the viewer
+  useEffect(() => {
+    if (!pageNumber) return;
+    let cancelled = false;
+    const target = Number(pageNumber);
+    let attempts = 0;
+    const tryGoto = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      if (viewerHas()) {
+        await viewerGotoPage(target).catch(() => {});
+        return; // success or attempted; exit retry loop
+      }
+      if (attempts < 15) { // retry ~3s total
+        setTimeout(tryGoto, 200);
+      }
+    };
+    tryGoto();
+    return () => { cancelled = true; };
+  }, [pageNumber]);
 
   return (
     <div className="h-full w-full bg-white text-red-700">
