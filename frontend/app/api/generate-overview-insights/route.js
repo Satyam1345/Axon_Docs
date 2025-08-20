@@ -1,6 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import fs from 'fs/promises';
 import path from 'path';
+import { getRuntimeEnv } from '@/app/lib/runtimeEnv';
 
 /**
  * Generates a prompt for an LLM to create comprehensive insights from multiple documents.
@@ -90,12 +91,16 @@ Please provide comprehensive strategic insights now.
   `;
 }
 
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
+const RTE = getRuntimeEnv();
+const GEMINI_API_KEY = RTE.GEMINI_API_KEY || RTE.GOOGLE_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '';
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 export async function POST(req) {
   try {
     const { persona, jobTask } = await req.json();
-    const pdfsDirectory = path.join(process.cwd(), 'public', 'pdfs');
+  // In Next.js route handlers, process.cwd() resolves to project root inside the container
+  // Our Docker image serves static assets from /app/frontend/public
+  const pdfsDirectory = path.join(process.cwd(), 'public', 'pdfs');
     
     const files = await fs.readdir(pdfsDirectory);
     const pdfFiles = files.filter(file => file.toLowerCase().endsWith('.pdf'));
@@ -119,8 +124,23 @@ export async function POST(req) {
 ${base64Content}`;
     }
 
+    // Optional provider check (we only support gemini)
+  const provider = (RTE.LLM_PROVIDER || process.env.LLM_PROVIDER || 'gemini').toLowerCase();
+    if (!GEMINI_API_KEY) {
+      return new Response(JSON.stringify({ error: 'Missing GEMINI_API_KEY/GOOGLE_API_KEY' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (provider !== 'gemini') {
+      return new Response(JSON.stringify({ error: `Unsupported LLM_PROVIDER: ${provider}` }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  const modelName = RTE.GEMINI_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
     // Generate insights with Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: modelName });
     const prompt = createOverviewInsightsPrompt(combinedText, persona, jobTask);
     const result = await model.generateContent(prompt);
     const insights = await result.response.text();

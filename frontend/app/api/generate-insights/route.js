@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getRuntimeEnv } from '@/app/lib/runtimeEnv';
 
 /**
  * Generates a detailed prompt for an LLM to create AI insights from text.
@@ -80,7 +81,10 @@ Please provide comprehensive AI insights now.
   `;
 }
 
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
+// Prefer runtime-injected env (runtime-env.js), fall back to server env
+const RTE = getRuntimeEnv();
+const GEMINI_API_KEY = RTE.GEMINI_API_KEY || RTE.GOOGLE_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '';
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 export async function POST(req) {
   try {
@@ -93,8 +97,23 @@ export async function POST(req) {
       });
     }
 
+    // Optional: honor LLM_PROVIDER; we currently support only 'gemini'
+    const provider = (process.env.LLM_PROVIDER || 'gemini').toLowerCase();
+    if (!GEMINI_API_KEY) {
+      return new Response(JSON.stringify({ error: 'Missing GEMINI_API_KEY/GOOGLE_API_KEY' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (provider !== 'gemini') {
+      return new Response(JSON.stringify({ error: `Unsupported LLM_PROVIDER: ${provider}` }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  const modelName = RTE.GEMINI_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
     // Generate insights with Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: modelName });
     const prompt = createInsightsPrompt(text, persona, jobTask);
     const result = await model.generateContent(prompt);
     const insights = await result.response.text();

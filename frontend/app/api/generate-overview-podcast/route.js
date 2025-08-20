@@ -3,6 +3,7 @@ import * as sdk from 'microsoft-cognitiveservices-speech-sdk';
 import { Buffer } from 'buffer';
 import fs from 'fs/promises';
 import path from 'path';
+import { getRuntimeEnv } from '@/app/lib/runtimeEnv';
 // Use pdfjs-dist for reliable PDF text extraction in Node
 
 /**
@@ -63,7 +64,9 @@ Generate the two-speaker overview podcast script now, focusing on strategic synt
   `;
 }
 
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY);
+const RTE = getRuntimeEnv();
+const GEMINI_API_KEY = RTE.GEMINI_API_KEY || RTE.GOOGLE_API_KEY || process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY || '';
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
 
 export async function POST(req) {
   try {
@@ -92,14 +95,55 @@ export async function POST(req) {
 ${base64Content}`;
     }
 
-    // 1. Generate Script with Gemini
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // 1. Generate Script with Gemini (provider-guarded)
+  const provider = (RTE.LLM_PROVIDER || process.env.LLM_PROVIDER || 'gemini').toLowerCase();
+    if (!GEMINI_API_KEY) {
+      return new Response(JSON.stringify({ error: 'Missing GEMINI_API_KEY/GOOGLE_API_KEY' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    if (provider !== 'gemini') {
+      return new Response(JSON.stringify({ error: `Unsupported LLM_PROVIDER: ${provider}` }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  const modelName = RTE.GEMINI_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+    const model = genAI.getGenerativeModel({ model: modelName });
     const prompt = createOverviewPodcastScriptPrompt(combinedText, persona, jobTask);
     const result = await model.generateContent(prompt);
     const script = await result.response.text();
 
     // 2. Convert Script to Speech with Azure TTS
-    const speechConfig = sdk.SpeechConfig.fromSubscription(process.env.AZURE_TTS_KEY, process.env.AZURE_TTS_REGION);
+  const ttsKey = RTE.AZURE_TTS_KEY || process.env.AZURE_TTS_KEY;
+  const ttsEndpoint = RTE.AZURE_TTS_ENDPOINT || process.env.AZURE_TTS_ENDPOINT;
+  const ttsRegion = RTE.AZURE_TTS_REGION || process.env.AZURE_TTS_REGION;
+    if (!ttsKey || (!ttsEndpoint && !ttsRegion)) {
+      return new Response(JSON.stringify({ error: 'Missing Azure TTS config: require AZURE_TTS_KEY and either AZURE_TTS_ENDPOINT or AZURE_TTS_REGION' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    let speechConfig;
+    if (ttsEndpoint) {
+      try {
+        const u = new URL(ttsEndpoint);
+        if (u.protocol === 'ws:' || u.protocol === 'wss:') {
+          speechConfig = sdk.SpeechConfig.fromEndpoint(u, ttsKey);
+        } else if (u.protocol === 'http:' || u.protocol === 'https:') {
+          const host = u.hostname || '';
+          const regionGuess = host.split('.')[0] || ttsRegion || 'eastus';
+          speechConfig = sdk.SpeechConfig.fromSubscription(ttsKey, regionGuess);
+        } else {
+          speechConfig = sdk.SpeechConfig.fromSubscription(ttsKey, ttsRegion || 'eastus');
+        }
+      } catch (_) {
+        speechConfig = sdk.SpeechConfig.fromSubscription(ttsKey, ttsRegion || 'eastus');
+      }
+    } else {
+      speechConfig = sdk.SpeechConfig.fromSubscription(ttsKey, ttsRegion || 'eastus');
+    }
     speechConfig.speechSynthesisOutputFormat = sdk.SpeechSynthesisOutputFormat.Audio16Khz32KBitRateMonoMp3;
     
     const synthesizer = new sdk.SpeechSynthesizer(speechConfig);

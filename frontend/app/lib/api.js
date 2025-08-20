@@ -1,7 +1,8 @@
 // app/lib/api.js
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+// Use relative base URL so browser requests go through Nginx (8080) -> backend (5001)
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/';
 export const apiClient = axios.create({ baseURL: API_URL });
 
 // --- Main App Functions ---
