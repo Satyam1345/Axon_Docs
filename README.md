@@ -15,29 +15,30 @@ Add your screenshots to `docs/screenshots/` with these filenames to render below
 
 1. Landing Page
 
-![Landing Page](docs/screenshots/01-landing.png)
+![WhatsApp Image 2025-08-20 at 06 12 32_9e2e0603](https://github.com/user-attachments/assets/9ba55ad0-c163-4d1e-b468-ca9881b443e5)
 
-2. PDF Viewer with highlighted sections and subsection analysis
+2. PDF Viewer with highlighted sections and subsection analysis (Allows click to jump to that specific page)
 
-![PDF Viewer](docs/screenshots/02-pdf-viewer.png)
+![WhatsApp Image 2025-08-20 at 06 31 39_6c11f163](https://github.com/user-attachments/assets/f07feccb-3a1a-4f2e-b088-a9e44bf1955c)
+
 
 3. AI Insights page
 
-![AI Insights](docs/screenshots/03-ai-insights.png)
+![WhatsApp Image 2025-08-20 at 06 30 06_4ad8e35b](https://github.com/user-attachments/assets/2f40252d-4ee5-4ef1-93d6-841716b5f564)
 
 4. Podcast page
 
-![Podcast](docs/screenshots/04-podcast.png)
+![WhatsApp Image 2025-08-20 at 06 29 22_dcc8f3b8](https://github.com/user-attachments/assets/f6990057-7d35-47f5-9880-3a1549a699fb)
 
 5. Upload PDF page
 
-![Upload PDF](docs/screenshots/05-upload.png)
+![WhatsApp Image 2025-08-20 at 06 12 42_34bbff38](https://github.com/user-attachments/assets/0a184ec1-3b2d-45f7-84c4-351fdabfefa0)
+![WhatsApp Image 2025-08-20 at 06 12 55_9fc7d069](https://github.com/user-attachments/assets/d7041c79-aac2-4144-a8d5-dce1eedd89f2)
 
-6. Other Details page
+6. Related Findings for selected texts   (Allows click to jump to that specific page)
 
-![Other Details](docs/screenshots/06-details.png)
+![WhatsApp Image 2025-08-20 at 06 31 00_6bda6bda](https://github.com/user-attachments/assets/762129f6-b142-4405-a94f-11f076ce3736)
 
-> If your filenames differ, update the paths above or rename your images to match.
 
 ## Quick Start (Docker)
 
@@ -125,17 +126,3 @@ Dockerfile               # Multi-stage build and runtime setup
 3) Next.js APIs call Gemini to generate insights/scripts; Podcast endpoints call Azure TTS.
 4) Express endpoints handle uploads/related content and optionally call Python.
 5) Static PDFs are read from `frontend/public/pdfs` when needed.
-
-## Troubleshooting
-
-- Azure TTS endpoint error mentioning ws/wss:
-  - Use an HTTPS endpoint like `https://<region>.tts.speech.microsoft.com/cognitiveservices/v1` or set `AZURE_TTS_REGION` directly.
-  - The app auto-derives region from the endpoint host if provided.
-- 404 on `/api/generate-*`:
-  - Ensure Nginx config is in use (container) and you’re calling via `http://localhost:8080`.
-- Missing keys:
-  - The app will return clear errors if required env vars are not set.
-
-## Security note
-
-For the requested parity with Adobe, `GEMINI_API_KEY` is exposed to `window.__ENV`. In production, prefer server-only secrets where possible.
