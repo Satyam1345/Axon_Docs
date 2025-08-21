@@ -51,7 +51,7 @@ Run (env vars inline):
 
 ```bash
 docker run --rm --name axon-docs \
-  -e ADOBE_EMBED_API_KEY=<ADOBE_EMBED_API_KEY> \
+  -e ADOBE_EMBED_API_KEY=8f94cb51c25d45b6ad598687c409fdcb \
   -e LLM_PROVIDER=gemini \
   -e GEMINI_MODEL=gemini-2.5-flash \
   -e GEMINI_API_KEY=<GEMINI_API_KEY> \
